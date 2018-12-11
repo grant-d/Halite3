@@ -39,6 +39,7 @@ namespace Halite3
 
                 int maxShips = 8 + game.Map.Width / 8; // 32->12, 40->13, 48->14, 64->16
                 int maxDropOffs = 0 + game.Map.Width / 16; // 32->2, 40->2, 48->3, 64->4
+                int maxRadius = 0 + game.Map.Width / 6; // 32->5, 40->7, 48->8, 64->10
 
                 var states = new Dictionary<EntityId, ShipStatus>();
 
@@ -51,10 +52,13 @@ namespace Halite3
 
                     var commandQueue = new List<Command>();
 
+                    if (CheckIfShipyardIsHijacked(game, out Command cmd))
+                        commandQueue.Add(cmd);
+
                     if (game.Me.Ships.Count >= maxShips
                         && game.Me.Dropoffs.Count < maxDropOffs
                         && game.TurnNumber <= 350
-                        && game.Me.Halite > Constants.DropOffCost * 2)
+                        && game.Me.Halite > Constants.DropOffCost * 1.5)
                     {
                         Ship ship = GetFurthestShip(game.Me, game, states);
 
@@ -68,9 +72,10 @@ namespace Halite3
                     foreach (Ship ship in game.Me.Ships.Values)
                     {
                         if (!states.TryGetValue(ship.Id, out ShipStatus status))
+                        {
                             states.Add(ship.Id, status = new ShipStatus { State = ShipState.None });
+                        }
 
-                        // Keep track of closest base
                         (Position Position, int Distance) closestBase = game.GetClosestBase(ship);
                         var turnsRemaining = Constants.MaxTurns - game.TurnNumber;
 
@@ -99,14 +104,14 @@ namespace Halite3
                                         goto case ShipState.Returning;
                                     }
 
-                                    if (game.Map.At(ship.Position).Halite > Constants.BarrenHalite)
+                                    if (game.Map.At(ship.Position).Halite >= Constants.MaxHalite / 8)
                                     {
                                         states[ship.Id].State = ShipState.Mining;
                                         commandQueue.Add(ship.Stay());
                                         continue;
                                     }
 
-                                    Position mine = game.Map.GetLocalRichestMine(ship, 2);
+                                    Position mine = game.Map.GetRichestLocalMine(ship, 2);
                                     if (mine != ship.Position)
                                     {
                                         Direction dir = game.Map.NaiveNavigate(ship, mine);
@@ -152,6 +157,30 @@ namespace Halite3
                     Game.EndTurn(commandQueue);
                 }
             }
+        }
+
+        // Spawn under any hijacker
+        private static bool CheckIfShipyardIsHijacked(Game game, out Command command)
+        {
+            Debug.Assert(game != null);
+            command = null;
+
+            if (!game.Map.At(game.Me.Shipyard).IsOccupied)
+                return false;
+
+            foreach (Ship ship in game.Me.Ships.Values)
+            {
+                if (ship.Position == game.Me.Shipyard.Position)
+                {
+                    if (game.Me.Halite > Constants.ShipCost)
+                    {
+                        command = Shipyard.Spawn();
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static Ship GetFurthestShip(Player player, Game game, IReadOnlyDictionary<EntityId, ShipStatus> shipStatus)

@@ -4,10 +4,11 @@ namespace Halite3.Hlt
 {
     public static class MapExtensions
     {
-        public static Position GetLocalRichestMine(this Map map, Ship ship, byte radius)
+        public static Position GetRichestLocalMine(this Map map, Ship ship, int radius)
         {
             Debug.Assert(map != null);
             Debug.Assert(ship != null);
+            Debug.Assert(radius >= 0 && radius <= map.Width && radius <= map.Height);
 
             Position mine = ship.Position;
 

@@ -22,11 +22,6 @@ namespace Halite3.Hlt
         public static int MaxHalite { get; private set; }
 
         /// <summary>
-        /// The minimum amount of halite in a cell to be considered barren.
-        /// </summary>
-        public static int BarrenHalite => MaxHalite / 10;
-
-        /// <summary>
         /// The maximum number of turns a game can last. This reflects the fact
         /// that smaller maps play for fewer turns.
         /// </summary>
