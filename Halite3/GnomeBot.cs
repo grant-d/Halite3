@@ -23,6 +23,7 @@ namespace Halite3
     public sealed class GnomeBot
     {
         private const double CostFactor = 1.5;
+        private const int MaxBuildTurn = 200;
 
         public static void Main(string[] args)
         {
@@ -64,7 +65,7 @@ namespace Halite3
 
                     if (game.Me.Ships.Count >= maxShips
                         && game.Me.Dropoffs.Count < maxDropOffs
-                        && game.TurnNumber <= 350
+                        && game.TurnNumber <= MaxBuildTurn
                         && game.Me.Halite > Constants.DropOffCost * CostFactor)
                     {
                         Ship ship = GetFurthestShip(game.Me, game, states);
@@ -153,7 +154,7 @@ namespace Halite3
                         }
                     }
 
-                    if (game.TurnNumber <= 350
+                    if (game.TurnNumber <= MaxBuildTurn
                         && game.Me.Ships.Count < maxShips
                         && game.Me.Halite > Constants.ShipCost * CostFactor
                         && !game.Map.At(game.Me.Shipyard).IsOccupied)
