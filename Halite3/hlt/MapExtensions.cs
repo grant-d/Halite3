@@ -4,7 +4,7 @@ namespace Halite3.Hlt
 {
     public static class MapExtensions
     {
-        public static Position GetRichestLocalTriangle(this Map map, Position position)
+        public static (Position Position, int Halite) GetRichestLocalTriangle(this Map map, Position position)
         {
             Debug.Assert(map != null);
             Debug.Assert(position != null);
@@ -12,25 +12,25 @@ namespace Halite3.Hlt
             // North
             Position north = position.DirectionalOffset(Direction.North);
             int n = Sum(north, Direction.North, Direction.East, Direction.West);
-            int best = n;
+            int halite = n;
             Position mine = north;
 
             // East
             Position east = position.DirectionalOffset(Direction.East);
             int e = Sum(east, Direction.North, Direction.East, Direction.South);
-            if (e > best) { mine = east; best = e; }
+            if (e > halite) { mine = east; halite = e; }
 
             // South
             Position south = position.DirectionalOffset(Direction.South);
             int s = Sum(south, Direction.East, Direction.South, Direction.West);
-            if (s > best) { mine = south; best = s; }
+            if (s > halite) { mine = south; halite = s; }
 
             // West
             Position west = position.DirectionalOffset(Direction.West);
             int w = Sum(west, Direction.North, Direction.South, Direction.West);
-            if (w > best) { mine = west; }
+            if (w > halite) { mine = west; halite = w; }
 
-            return mine;
+            return (mine, halite);
 
             int Sum(Position pos, Direction dir1, Direction dir2, Direction dir3)
             {
@@ -49,37 +49,37 @@ namespace Halite3.Hlt
             }
         }
 
-        public static Position GetRichestLocalSquare(this Map map, Position position, int radius = 1)
+        public static (Position Position, int Halite) GetRichestLocalSquare(this Map map, Position position, int radius = 1)
         {
             Debug.Assert(map != null);
             Debug.Assert(position != null);
             Debug.Assert(radius >= 0 && radius <= map.Width && radius <= map.Height);
 
             if (radius == 0)
-                return position;
+                return (position, Sum(position));
 
             // North
             var north = new Position(position.X, position.Y - radius);
             int n = Sum(north);
-            int best = n;
+            int halite = n;
             Position mine = north;
 
             // East
             var east = new Position(position.X + radius, position.Y);
             int e = Sum(east);
-            if (e > best) { mine = east; best = e; }
+            if (e > halite) { mine = east; halite = e; }
 
             // South
             var south = new Position(position.X, position.Y + radius);
             int s = Sum(south);
-            if (s > best) { mine = south; best = s; }
+            if (s > halite) { mine = south; halite = s; }
 
             // West
             var west = new Position(position.X - radius, position.Y);
             int w = Sum(west);
-            if (w > best) { mine = west; }
+            if (w > halite) { mine = west; halite = w; }
 
-            return mine;
+            return (mine, halite);
 
             int Sum(Position pos)
             {
@@ -100,17 +100,18 @@ namespace Halite3.Hlt
             }
         }
 
-        public static Position GetRichestLocalRadius(this Map map, Position position, int radius)
+        public static (Position Position, int Halite) GetRichestLocalRadius(this Map map, Position position, int radius)
         {
             Debug.Assert(map != null);
             Debug.Assert(position != null);
             Debug.Assert(radius >= 0 && radius <= map.Width && radius <= map.Height);
 
-            if (radius == 0)
-                return position;
-
             Position mine = position;
             int halite = map.At(mine).Halite;
+
+            if (radius == 0)
+                return (mine, halite);
+
             for (int x = position.X - radius; x <= position.X + radius; x++)
             {
                 for (int y = position.Y - radius; y <= position.Y + radius; y++)
@@ -121,13 +122,13 @@ namespace Halite3.Hlt
                     if (cell.IsEmpty
                         && cell.Halite > halite)
                     {
-                        halite = map.At(pos).Halite;
                         mine = pos;
+                        halite = map.At(pos).Halite;
                     }
                 }
             }
 
-            return mine;
+            return (mine, halite);
         }
     }
 }

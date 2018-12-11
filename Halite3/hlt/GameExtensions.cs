@@ -104,5 +104,25 @@ namespace Halite3.Hlt
 
             return true;
         }
+
+        public static (Position Position, int Halite) GetRichestDropSquare(this Game game, int radius)
+        {
+            Debug.Assert(game != null);
+            Debug.Assert(radius >= 0 && radius <= game.Map.Width && radius <= game.Map.Height);
+
+            (Position pos, int halite) = game.Map.GetRichestLocalSquare(game.Me.Shipyard.Position, radius);
+
+            foreach (Dropoff drop in game.Me.Dropoffs.Values)
+            {
+                (Position Position, int Halite) mine = game.Map.GetRichestLocalSquare(drop.Position, radius);
+                if (mine.Halite > halite)
+                {
+                    pos = mine.Position;
+                    halite = mine.Halite;
+                }
+            }
+
+            return (pos, halite);
+        }
     }
 }

@@ -33,7 +33,7 @@ namespace Halite3
 
             using (var game = new Game())
             {
-                Position richestMine = game.Map.GetRichestLocalRadius(game.Me.Shipyard.Position, game.Map.Width / 4);
+                (Position richestMine, _) = game.Map.GetRichestLocalRadius(game.Me.Shipyard.Position, game.Map.Width / 4);
 
                 // At this point "game" variable is populated with initial map data.
                 // This is a good place to do computationally expensive start-up pre-processing.
@@ -43,7 +43,6 @@ namespace Halite3
 
                 int maxShips = 12 + game.Map.Width / 8; // 32->20, 40->21, 48->22, 56->23, 64->24
                 int maxDropOffs = -1 + game.Map.Width / 20; // 32->0, 40->1, 48->1, 64->2
-                int maxRadius = -1 + game.Map.Width / 6; // 32->4, 40->6, 48->7, 64->9
                 int minBuildTurn = Constants.MaxTurns * 5 / 10;
                 int maxBuildTurn = Constants.MaxTurns * 8 / 10;
 
@@ -115,10 +114,10 @@ namespace Halite3
                                         continue;
                                     }
 
-                                    Position nextPos = game.Map.GetRichestLocalSquare(ship.Position, 1);
+                                    (Position nextPos, _) = game.Map.GetRichestLocalSquare(ship.Position, 1);
                                     if (!IsWorthMining(game.Map.At(nextPos).Halite))
                                     {
-                                        nextPos = game.Map.GetRichestLocalSquare(nextPos, maxRadius);
+                                        (nextPos, _) = game.Map.GetRichestLocalSquare(nextPos, 3); // Not enough time in game to explore too far
                                     }
 
                                     double dice = rng.NextDouble();
