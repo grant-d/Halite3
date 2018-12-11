@@ -13,7 +13,7 @@ namespace Halite3.Hlt
         /// <summary>
         /// Returns the command to spawn a new ship
         /// </summary>
-        public static Command Spawn()
+        public static Command SpawnShip()
             => Command.SpawnShip();
     }
 }

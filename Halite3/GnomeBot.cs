@@ -23,7 +23,6 @@ namespace Halite3
     public sealed class GnomeBot
     {
         private const double CostFactor = 1.5;
-        private const int MaxBuildTurn = 350;
 
         public static void Main(string[] args)
         {
@@ -43,8 +42,9 @@ namespace Halite3
                 Log.LogMessage("Successfully created bot! My Player ID is " + game.MyId + ". Bot rng seed is " + rngSeed + ".");
 
                 int maxShips = 10 + game.Map.Width / 8; // 32->14, 40->15, 48->16, 64->18
-                int maxDropOffs = 0 + game.Map.Width / 16; // 32->2, 40->2, 48->3, 64->4
+                int maxDropOffs = -2 + game.Map.Width / 16; // 32->0, 40->0, 48->1, 64->2
                 int maxRadius = -1 + game.Map.Width / 6; // 32->4, 40->6, 48->7, 64->9
+                int maxBuildTurn = Constants.MaxTurns * 8 / 10;
 
                 var states = new Dictionary<EntityId, ShipStatus>();
 
@@ -61,13 +61,13 @@ namespace Halite3
                     {
                         if (game.Me.Halite >= Constants.ShipCost)
                         {
-                            commandQueue.Add(Shipyard.Spawn());
+                            commandQueue.Add(Shipyard.SpawnShip());
                         }
                     }
 
                     if (game.Me.Ships.Count >= maxShips
                         && game.Me.Dropoffs.Count < maxDropOffs
-                        && game.TurnNumber <= MaxBuildTurn
+                        && game.TurnNumber <= maxBuildTurn
                         && game.Me.Halite > Constants.DropOffCost * CostFactor)
                     {
                         Ship ship = GetFurthestShip(game.Me, game, states);
@@ -131,9 +131,10 @@ namespace Halite3
                                         }
                                     }
 
-                                    if (rng.NextDouble() < 0.25)
+                                    double dice = rng.NextDouble();
+                                    if (dice < 0.3)
                                     {
-                                        if (rng.NextDouble() < 0.1)
+                                        if (dice < 0.1)
                                         {
                                             nextPos = richestMine;
                                         }
@@ -185,12 +186,12 @@ namespace Halite3
                         }
                     }
 
-                    if (game.TurnNumber <= MaxBuildTurn
+                    if (game.TurnNumber <= maxBuildTurn
                         && game.Me.Ships.Count < maxShips
                         && game.Me.Halite > Constants.ShipCost * CostFactor
                         && !game.Map.At(game.Me.Shipyard).IsOccupied)
                     {
-                        commandQueue.Add(Shipyard.Spawn());
+                        commandQueue.Add(Shipyard.SpawnShip());
                     }
 
                     Game.EndTurn(commandQueue);
@@ -301,7 +302,7 @@ namespace Halite3
             if (game.TurnNumber <= 4
                 && !game.Map.At(game.Me.Shipyard.Position).IsOccupied)
             {
-                commandQueue.Add(Shipyard.Spawn());
+                commandQueue.Add(Shipyard.SpawnShip());
             }
 
             Game.EndTurn(commandQueue);
