@@ -22,7 +22,7 @@ namespace Halite3
 
     public sealed class GnomeBot
     {
-        private const double CostFactor = 1.25;
+        private const double CostFactor = 2.1; // Always keep a ship in reserve for hijack prevention
 
         public static void Main(string[] args)
         {
@@ -41,9 +41,10 @@ namespace Halite3
                 Game.Ready("MyCSharpBot");
                 Log.LogMessage("Successfully created bot! My Player ID is " + game.MyId + ". Bot rng seed is " + rngSeed + ".");
 
-                int maxShips = 16 + game.Map.Width / 8; // 32->20, 40->21, 48->22, 56->23, 64->24
-                int maxDropOffs = 0; // -2 + game.Map.Width / 16; // 32->0, 40->0, 48->1, 64->2
+                int maxShips = 12 + game.Map.Width / 8; // 32->20, 40->21, 48->22, 56->23, 64->24
+                int maxDropOffs = -1 + game.Map.Width / 20; // 32->0, 40->1, 48->1, 64->2
                 //int maxRadius = -1 + game.Map.Width / 6; // 32->4, 40->6, 48->7, 64->9
+                int minBuildTurn = Constants.MaxTurns * 5 / 10;
                 int maxBuildTurn = Constants.MaxTurns * 8 / 10;
 
                 var states = new Dictionary<EntityId, ShipStatus>();
@@ -67,6 +68,7 @@ namespace Halite3
 
                     if (game.Me.Ships.Count >= maxShips
                         && game.Me.Dropoffs.Count < maxDropOffs
+                        && game.TurnNumber >= minBuildTurn
                         && game.TurnNumber <= maxBuildTurn
                         && game.Me.Halite > Constants.DropOffCost * CostFactor)
                     {
@@ -134,7 +136,8 @@ namespace Halite3
                                     double dice = rng.NextDouble();
                                     if (dice < 0.25)
                                     {
-                                        if (dice < 0.2)
+                                        dice = rng.NextDouble();
+                                        if (dice < 0.25)
                                         {
                                             nextPos = richestMine;
                                         }
