@@ -42,7 +42,7 @@ namespace Halite3
                 Game.Ready("MyCSharpBot");
                 Log.LogMessage("Successfully created bot! My Player ID is " + game.MyId + ". Bot rng seed is " + rngSeed + ".");
 
-                int maxShips = 12 + game.Map.Width / 8; // 32->12, 40->13, 48->14, 64->16
+                int maxShips = 10 + game.Map.Width / 8; // 32->14, 40->15, 48->16, 64->18
                 int maxDropOffs = 0 + game.Map.Width / 16; // 32->2, 40->2, 48->3, 64->4
                 int maxRadius = -1 + game.Map.Width / 6; // 32->4, 40->6, 48->7, 64->9
 
@@ -114,7 +114,7 @@ namespace Halite3
                                         goto case ShipState.Returning;
                                     }
 
-                                    if (WorthMining(game.Map.At(ship.Position).Halite))
+                                    if (IsWorthMining(game.Map.At(ship.Position).Halite))
                                     {
                                         states[ship.Id].State = ShipState.Mining;
                                         commandQueue.Add(ship.Stay());
@@ -122,6 +122,15 @@ namespace Halite3
                                     }
 
                                     Position mine = game.Map.GetRichestLocalMine(ship.Position, 1);
+                                    if (!IsWorthMining(game.Map.At(mine).Halite))
+                                    {
+                                        mine = game.Map.GetRichestLocalMine(ship.Position, 2);
+                                        //if (!IsWorthMining(game.Map.At(mine).Halite))
+                                        //{
+                                        //    mine = richestMine;
+                                        //}
+                                    }
+
                                     if (mine != ship.Position)
                                     {
                                         Direction dir = game.Map.NaiveNavigate(ship, mine);
@@ -169,7 +178,7 @@ namespace Halite3
             }
         }
 
-        private static bool WorthMining(int halite)
+        private static bool IsWorthMining(int halite)
             => halite / Constants.ExtractRatio > halite / Constants.MoveCostRatio;
 
         private static Ship GetFurthestShip(Player player, Game game, IReadOnlyDictionary<EntityId, ShipStatus> shipStatus)
@@ -247,7 +256,7 @@ namespace Halite3
                 else
                 {
                     int halite = game.Map.At(ship.Position).Halite;
-                    if (!WorthMining(halite))
+                    if (!IsWorthMining(halite))
                     {
                         Position pos = ship.Position;
                         foreach (Direction dir1 in DirectionExtensions.AllCardinals)
