@@ -9,7 +9,6 @@ namespace Halite3
     public enum ShipState
     {
         None = 0,
-        Headed,
         Mining,
         Returning,
         Converting,
@@ -38,7 +37,8 @@ namespace Halite3
                 Game.Ready("MyCSharpBot");
                 Log.LogMessage("Successfully created bot! My Player ID is " + game.MyId + ". Bot rng seed is " + rngSeed + ".");
 
-                int maxShips = 8 + game.Map.Width / 8;
+                int maxShips = 8 + game.Map.Width / 8; // 32->12, 40->13, 48->14, 64->16
+                int maxDropOffs = 0 + game.Map.Width / 16; // 32->2, 40->2, 48->3, 64->4
 
                 var states = new Dictionary<EntityId, ShipStatus>();
 
@@ -52,11 +52,11 @@ namespace Halite3
                     var commandQueue = new List<Command>();
 
                     if (game.Me.Ships.Count >= maxShips
-                        && game.Me.Dropoffs.Count < game.TurnNumber / 120
+                        && game.Me.Dropoffs.Count < maxDropOffs
                         && game.TurnNumber <= 350
                         && game.Me.Halite > Constants.DropOffCost * 2)
                     {
-                        Ship ship = GetFurthestShip(game.Me, game.Map, states);
+                        Ship ship = GetFurthestShip(game.Me, game, states);
 
                         if (ship != default)
                         {
@@ -71,7 +71,7 @@ namespace Halite3
                             states.Add(ship.Id, status = new ShipStatus { State = ShipState.None });
 
                         // Keep track of closest base
-                        (Position Position, int Distance) closestBase = game.Map.GetClosestBase(ship, game.Me.Shipyard, game.Me.Dropoffs);
+                        (Position Position, int Distance) closestBase = game.GetClosestBase(ship);
                         var turnsRemaining = Constants.MaxTurns - game.TurnNumber;
 
                         Log.LogMessage($"Remaining {turnsRemaining} of {Constants.MaxTurns}");
@@ -106,7 +106,7 @@ namespace Halite3
                                         continue;
                                     }
 
-                                    Position mine = game.Map.GetRichestOpenMine(ship, 2);
+                                    Position mine = game.Map.GetLocalRichestMine(ship, 2);
                                     if (mine != ship.Position)
                                     {
                                         Direction dir = game.Map.NaiveNavigate(ship, mine);
@@ -119,7 +119,7 @@ namespace Halite3
                                 {
                                     states[ship.Id].State = ShipState.Returning;
 
-                                    if (GameMap.IsOnBase(ship, game.Me.Shipyard, game.Me.Dropoffs))
+                                    if (game.IsOnBase(ship))
                                     {
                                         goto case ShipState.None;
                                     }
@@ -154,10 +154,10 @@ namespace Halite3
             }
         }
 
-        private static Ship GetFurthestShip(Player player, GameMap map, IReadOnlyDictionary<EntityId, ShipStatus> shipStatus)
+        private static Ship GetFurthestShip(Player player, Game game, IReadOnlyDictionary<EntityId, ShipStatus> shipStatus)
         {
             Debug.Assert(player != null);
-            Debug.Assert(map != null);
+            Debug.Assert(game != null);
             Debug.Assert(shipStatus != null);
 
             Ship sh = default;
@@ -171,7 +171,7 @@ namespace Halite3
                 if (status.State != ShipState.Mining)
                     continue;
 
-                int dist = map.GetManhattanDistanceFromAllBases(ship, player.Shipyard, player.Dropoffs);
+                int dist = game.GetManhattanDistanceFromAllBases(ship);
                 if (dist > best)
                 {
                     best = dist;
@@ -186,12 +186,19 @@ namespace Halite3
         {
             Direction dir = game.Map.NaiveNavigate(ship, closestBase);
 
-            foreach (Direction direction in DirectionExtensions.AllCardinals)
+            var dist = game.Map.GetManhattanDistance(ship.Position, closestBase);
+            if (dist == 0)
+                return Direction.Still;
+
+            if (dist == 1)
             {
-                if (ship.Position.DirectionalOffset(direction) == closestBase)
+                foreach (Direction direction in DirectionExtensions.AllCardinals)
                 {
-                    dir = direction;
-                    break;
+                    if (ship.Position.DirectionalOffset(direction) == closestBase)
+                    {
+                        dir = direction;
+                        break;
+                    }
                 }
             }
 

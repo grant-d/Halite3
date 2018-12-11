@@ -14,7 +14,7 @@ namespace Halite3.Hlt
         public PlayerId MyId { get; }
         public List<Player> Players { get; } = new List<Player>();
         public Player Me { get; }
-        public GameMap Map { get; }
+        public Map Map { get; }
 
         public int TurnNumber { get; set; }
 
@@ -38,7 +38,7 @@ namespace Halite3.Hlt
             }
 
             Me = Players[MyId.Id];
-            Map = GameMap._generate();
+            Map = Map._generate();
         }
 
         /// <summary>

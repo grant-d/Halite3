@@ -42,7 +42,7 @@ namespace Halite3.Hlt
         /// This marking resets every turn and is used by NaiveNavigate to avoid collisions.
         /// </para>
         /// </summary>
-        /// <seealso cref="GameMap.NaiveNavigate(Ship, Position)"/>
+        /// <seealso cref="Map.NaiveNavigate(Ship, Position)"/>
         public void MarkUnsafe(Ship ship)
         {
             Ship = ship;

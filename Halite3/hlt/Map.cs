@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace Halite3.Hlt
 {
@@ -12,7 +11,7 @@ namespace Halite3.Hlt
     /// </para>
     /// </summary>
     /// <para><see cref="https://halite.io/learn-programming-challenge/api-docs#map"/></para>
-    public sealed class GameMap
+    public sealed class Map
     {
         private readonly MapCell[][] _cells;
 
@@ -25,7 +24,7 @@ namespace Halite3.Hlt
         /// <para><seealso cref="_generate"/></para>
         /// <param name="width">The width, as an int, of the map</param>
         /// <param name="height">The height, as an int, of the map</param>
-        public GameMap(int width, int height)
+        public Map(int width, int height)
         {
             Width = width;
             Height = height;
@@ -141,101 +140,6 @@ namespace Halite3.Hlt
             return Direction.Still;
         }
 
-        public (Position Position, int Distance) GetClosestBase(Ship ship, Shipyard shipyard, IReadOnlyDictionary<int, Dropoff> dropoffs)
-        {
-            Debug.Assert(ship != null);
-            Debug.Assert(shipyard != null);
-
-            Position pos = shipyard.Position;
-            int steps = GetManhattanDistance(ship.Position, pos);
-
-            if (dropoffs != null)
-            {
-                foreach (Dropoff dropoff in dropoffs.Values)
-                {
-                    var dist = GetManhattanDistance(ship.Position, dropoff.Position);
-
-                    if (dist <= steps)
-                    {
-                        pos = dropoff.Position;
-                        steps = dist;
-                    }
-                }
-            }
-
-            return (pos, steps);
-        }
-
-        public int GetManhattanDistanceFromAllBases(Ship ship, Shipyard shipyard, IReadOnlyDictionary<int, Dropoff> dropoffs)
-        {
-            Debug.Assert(ship != null);
-            Debug.Assert(shipyard != null);
-
-            var dist = GetManhattanDistance(ship.Position, shipyard.Position);
-
-            if (dropoffs != null)
-            {
-                foreach (Dropoff dropoff in dropoffs.Values)
-                {
-                    dist += GetManhattanDistance(ship.Position, dropoff.Position);
-                }
-            }
-
-            return dist;
-        }
-
-        public static bool IsOnBase(Ship ship, Shipyard shipyard, IReadOnlyDictionary<int, Dropoff> dropoffs)
-        {
-            Debug.Assert(ship != null);
-            Debug.Assert(shipyard != null);
-
-            if (ship.Position == shipyard.Position)
-            {
-                return true;
-            }
-
-            if (dropoffs != null)
-            {
-                foreach (Dropoff drop in dropoffs.Values)
-                {
-                    if (ship.Position == drop.Position)
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        public Position GetRichestOpenMine(Ship ship, byte radius)
-        {
-            Debug.Assert(ship != null);
-
-            Position mine = ship.Position;
-            if (radius == 0)
-                return mine;
-
-            int halite = At(mine).Halite;
-            for (int x = ship.Position.X - radius; x <= ship.Position.X + radius; x++)
-            {
-                for (int y = ship.Position.Y - radius; y <= ship.Position.Y + radius; y++)
-                {
-                    var pos = new Position(x, y);
-                    MapCell cell = At(pos);
-
-                    if (cell.IsEmpty
-                        && cell.Halite > halite)
-                    {
-                        halite = At(pos).Halite;
-                        mine = pos;
-                    }
-                }
-            }
-
-            return mine;
-        }
-
         /// <summary>
         /// Clears all the ships in preparation for player._update() and updates the halite on each cell.
         /// </summary>
@@ -265,13 +169,13 @@ namespace Halite3.Hlt
         /// Reads the starting map for the game from the Halite engine.
         /// </summary>
         /// <returns></returns>
-        internal static GameMap _generate()
+        internal static Map _generate()
         {
             var mapInput = GameInput.ReadInput();
             int width = mapInput.GetInt();
             int height = mapInput.GetInt();
 
-            var map = new GameMap(width, height);
+            var map = new Map(width, height);
 
             for (int y = 0; y < height; ++y)
             {

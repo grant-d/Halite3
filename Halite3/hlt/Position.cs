@@ -22,7 +22,7 @@ namespace Halite3.Hlt
         /// Returns a new position based on moving one unit in the given direction from the given position.
         /// Does not account for toroidal wraparound, that's done in GameMap.
         /// </summary>
-        /// <seealso cref="GameMap.Normalize(Position)"/>
+        /// <seealso cref="Map.Normalize(Position)"/>
         public Position DirectionalOffset(Direction dir)
         {
             Debug.Assert(Enum.IsDefined(typeof(Direction), dir));
