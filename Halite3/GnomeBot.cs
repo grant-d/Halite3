@@ -1,9 +1,8 @@
 using Halite3.Hlt;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Diagnostics;
-using System.IO;
+using System.Globalization;
 
 namespace Halite3
 {
@@ -57,29 +56,12 @@ namespace Halite3
                         && game.TurnNumber <= 350
                         && game.Me.Halite > Constants.DropOffCost * 2)
                     {
-                        int best = 0;
-                        Ship sh = default;
-                        foreach (Ship ship in game.Me.Ships.Values)
+                        Ship ship = GetFurthestShip(game.Me, game.Map, states);
+
+                        if (ship != default)
                         {
-                            if (!states.TryGetValue(ship.Id, out ShipStatus status))
-                                states.Add(ship.Id, status = new ShipStatus { State = ShipState.None });
-
-                            if (status.State != ShipState.Mining)
-                                continue;
-
-                            int dist = GetTotalManhattanDistanceFromBases(ship, game);
-
-                            if (dist > best)
-                            {
-                                best = dist;
-                                sh = ship;
-                            }
-                        }
-
-                        if (sh != default)
-                        {
-                            states[sh.Id].State = ShipState.Converting;
-                            commandQueue.Add(sh.MakeDropoff());
+                            states[ship.Id].State = ShipState.Converting;
+                            commandQueue.Add(ship.MakeDropoff());
                         }
                     }
 
@@ -89,12 +71,12 @@ namespace Halite3
                             states.Add(ship.Id, status = new ShipStatus { State = ShipState.None });
 
                         // Keep track of closest base
-                        (Position Position, int Steps) closestBase = GetClosestBase(ship, game);
+                        (Position Position, int Distance) closestBase = game.Map.GetClosestBase(ship, game.Me.Shipyard, game.Me.Dropoffs);
                         var turnsRemaining = Constants.MaxTurns - game.TurnNumber;
 
                         Log.LogMessage($"Remaining {turnsRemaining} of {Constants.MaxTurns}");
 
-                        if (turnsRemaining - game.Me.Ships.Count <= closestBase.Steps)
+                        if (turnsRemaining - game.Me.Ships.Count <= closestBase.Distance)
                         {
                             states[ship.Id].State = ShipState.Ending;
                         }
@@ -124,7 +106,7 @@ namespace Halite3
                                         continue;
                                     }
 
-                                    Position mine = GetBestMine(ship, game, 2);
+                                    Position mine = game.Map.GetRichestOpenMine(ship, 2);
                                     if (mine != ship.Position)
                                     {
                                         Direction dir = game.Map.NaiveNavigate(ship, mine);
@@ -137,7 +119,7 @@ namespace Halite3
                                 {
                                     states[ship.Id].State = ShipState.Returning;
 
-                                    if (IsOnBase(ship, game))
+                                    if (GameMap.IsOnBase(ship, game.Me.Shipyard, game.Me.Dropoffs))
                                     {
                                         goto case ShipState.None;
                                     }
@@ -172,16 +154,32 @@ namespace Halite3
             }
         }
 
-        private static int GetTotalManhattanDistanceFromBases(Ship ship, Game game)
+        private static Ship GetFurthestShip(Player player, GameMap map, IReadOnlyDictionary<EntityId, ShipStatus> shipStatus)
         {
-            var dist = game.Map.GetManhattanDistance(ship.Position, game.Me.Shipyard.Position);
+            Debug.Assert(player != null);
+            Debug.Assert(map != null);
+            Debug.Assert(shipStatus != null);
 
-            foreach (Dropoff dropoff in game.Me.Dropoffs.Values)
+            Ship sh = default;
+
+            int best = 0;
+            foreach (Ship ship in player.Ships.Values)
             {
-                dist += game.Map.GetManhattanDistance(ship.Position, dropoff.Position);
+                if (!shipStatus.TryGetValue(ship.Id, out ShipStatus status))
+                    continue;
+
+                if (status.State != ShipState.Mining)
+                    continue;
+
+                int dist = map.GetManhattanDistanceFromAllBases(ship, player.Shipyard, player.Dropoffs);
+                if (dist > best)
+                {
+                    best = dist;
+                    sh = ship;
+                }
             }
 
-            return dist;
+            return sh;
         }
 
         private static Direction GetEndingDirection(Ship ship, Game game, Position closestBase)
@@ -220,68 +218,6 @@ namespace Halite3
 
             Game.EndTurn(commands);
             return true;
-        }
-
-        private static (Position Position, int Steps) GetClosestBase(Ship ship, Game game)
-        {
-            Position pos = game.Me.Shipyard.Position;
-            int steps = game.Map.GetManhattanDistance(ship.Position, pos);
-            foreach (Dropoff dropoff in game.Me.Dropoffs.Values)
-            {
-                var dist = game.Map.GetManhattanDistance(ship.Position, dropoff.Position);
-                if (dist <= steps)
-                {
-                    pos = dropoff.Position;
-                    steps = dist;
-                }
-            }
-
-            return (pos, steps);
-        }
-
-        private static Position GetBestMine(Ship ship, Game game, byte radius)
-        {
-            Position mine = ship.Position;
-            int halite = 0;
-
-            while (halite == 0)
-            {
-                for (int x = ship.Position.X - radius; x <= ship.Position.X + radius; x++)
-                {
-                    for (int y = ship.Position.Y - radius; y <= ship.Position.Y + radius; y++)
-                    {
-                        var card = new Position(x, y);
-                        MapCell cell = game.Map.At(card);
-
-                        if (cell.IsEmpty
-                            && cell.Halite > halite)
-                        {
-                            halite = game.Map.At(card).Halite;
-                            mine = card;
-                        }
-                    }
-                }
-            }
-
-            return mine;
-        }
-
-        private static bool IsOnBase(Ship ship, Game game)
-        {
-            if (ship.Position == game.Me.Shipyard.Position)
-            {
-                return true;
-            }
-
-            foreach (Dropoff drop in game.Me.Dropoffs.Values)
-            {
-                if (ship.Position == drop.Position)
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
     }
 }
