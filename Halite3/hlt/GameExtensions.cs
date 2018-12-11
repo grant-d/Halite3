@@ -47,24 +47,45 @@ namespace Halite3.Hlt
             return dist;
         }
 
-        public static bool IsShipOnDrop(this Game game, Ship ship)
+        public static bool IsOnDrop(this Game game, Position position)
         {
             Debug.Assert(game != null);
-            Debug.Assert(ship != null);
+            Debug.Assert(position != null);
 
-            if (ship.Position == game.Me.Shipyard.Position)
+            if (position == game.Me.Shipyard.Position)
             {
                 return true;
             }
 
-            if (game.Me.Dropoffs != null)
+            MapCell cell = game.Map.At(position);
+
+            if (cell.HasStructure
+                && cell.Structure is Dropoff drop
+                && drop.Owner.Id == game.MyId.Id)
             {
-                foreach (Dropoff drop in game.Me.Dropoffs.Values)
+                return true;
+            }
+
+            return false;
+        }
+
+        public static bool IsNextToDrop(this Game game, Position position, out Direction direction, out Position target)
+        {
+            Debug.Assert(game != null);
+            Debug.Assert(position != null);
+
+            direction = Direction.Still;
+            target = position;
+
+            foreach (Direction dir in DirectionExtensions.AllCardinals)
+            {
+                Position pos = position.DirectionalOffset(dir);
+
+                if (IsOnDrop(game, pos))
                 {
-                    if (ship.Position == drop.Position)
-                    {
-                        return true;
-                    }
+                    direction = dir;
+                    target = pos;
+                    return true;
                 }
             }
 

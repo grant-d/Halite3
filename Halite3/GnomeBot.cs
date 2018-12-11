@@ -22,7 +22,7 @@ namespace Halite3
 
     public sealed class GnomeBot
     {
-        private const double CostFactor = 2.1; // Always keep a ship in reserve for hijack prevention
+        private const double CostFactor = 1.1;
 
         public static void Main(string[] args)
         {
@@ -58,13 +58,13 @@ namespace Halite3
 
                     var commandQueue = new List<Command>();
 
-                    if (game.IsShipyardHijacked())
-                    {
-                        if (game.Me.Halite >= Constants.ShipCost)
-                        {
-                            commandQueue.Add(Shipyard.SpawnShip());
-                        }
-                    }
+                    //if (game.IsShipyardHijacked())
+                    //{
+                    //    if (game.Me.Halite >= Constants.ShipCost)
+                    //    {
+                    //        commandQueue.Add(Shipyard.SpawnShip());
+                    //    }
+                    //}
 
                     if (game.Me.Ships.Count >= maxShips
                         && game.Me.Dropoffs.Count < maxDropOffs
@@ -124,27 +124,11 @@ namespace Halite3
                                     }
 
                                     Position nextPos = game.Map.GetRichestLocalSquare(ship.Position);
-                                    //if (!IsWorthMining(game.Map.At(nextPos).Halite))
-                                    //{
-                                    //    nextPos = game.Map.GetRichestLocalRadius(ship.Position, 2);
-                                    //    if (!IsWorthMining(game.Map.At(nextPos).Halite))
-                                    //    {
-                                    //        nextPos = game.Map.GetRichestLocalRadius(ship.Position, 3);
-                                    //    }
-                                    //}
 
                                     double dice = rng.NextDouble();
                                     if (dice < 0.15)
                                     {
-                                        foreach (Direction direction in DirectionExtensions.AllCardinals)
-                                        {
-                                            Position pos = ship.Position.DirectionalOffset(direction);
-                                            if (game.Map.At(pos).IsEmpty && pos != nextPos)
-                                            {
-                                                nextPos = pos;
-                                                break;
-                                            }
-                                        }
+                                        nextPos = Jiggle(game, ship, rng);
                                     }
 
                                     if (nextPos != ship.Position)
@@ -159,12 +143,32 @@ namespace Halite3
                                 {
                                     states[ship.Id].State = ShipState.Returning;
 
-                                    if (game.IsShipOnDrop(ship))
+                                    if (game.IsOnDrop(ship.Position))
                                     {
                                         goto case ShipState.None;
                                     }
 
-                                    Direction dir = game.Map.NaiveNavigate(ship, closestBase.Position);
+                                    if (game.IsNextToDrop(ship.Position, out Direction dir, out Position drop))
+                                    {
+                                        MapCell cell = game.Map.At(drop);
+                                        if (cell.IsOccupied)
+                                        {
+                                            if (cell.Ship.Owner.Id == game.MyId.Id)
+                                            {
+                                                dir = game.Map.NaiveNavigate(ship, Jiggle(game, ship, rng));
+                                                commandQueue.Add(ship.Move(dir));
+                                                continue;
+                                            }
+
+                                            cell.MarkSafe();
+                                        }
+
+                                        dir = game.Map.NaiveNavigate(ship, drop);
+                                        commandQueue.Add(ship.Move(dir));
+                                        continue;
+                                    }
+
+                                    dir = game.Map.NaiveNavigate(ship, closestBase.Position);
                                     commandQueue.Add(ship.Move(dir));
                                 }
                                 break;
@@ -192,6 +196,27 @@ namespace Halite3
                     Game.EndTurn(commandQueue);
                 }
             }
+        }
+
+        private static Position Jiggle(Game game, Ship ship, Random rng)
+        {
+            var list = new List<Position>(5);
+            list.Add(ship.Position); // Stay
+
+            foreach (Direction direction in DirectionExtensions.AllCardinals)
+            {
+                Position pos = ship.Position.DirectionalOffset(direction);
+                if (game.Map.At(pos).IsEmpty)
+                {
+                    list.Add(pos);
+                }
+            }
+
+            if (list.Count == 1)
+                return list[0];
+
+            int i = rng.Next(0, list.Count);
+            return list[i];
         }
 
         private static bool IsWorthMining(int halite)

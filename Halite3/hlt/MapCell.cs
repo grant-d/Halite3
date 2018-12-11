@@ -47,5 +47,10 @@ namespace Halite3.Hlt
         {
             Ship = ship;
         }
+
+        public void MarkSafe()
+        {
+            Ship = null;
+        }
     }
 }
