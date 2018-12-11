@@ -47,7 +47,7 @@ namespace Halite3.Hlt
             return dist;
         }
 
-        public static bool IsOnBase(this Game game, Ship ship)
+        public static bool IsShipOnAnyBase(this Game game, Ship ship)
         {
             Debug.Assert(game != null);
             Debug.Assert(ship != null);
@@ -69,6 +69,24 @@ namespace Halite3.Hlt
             }
 
             return false;
+        }
+
+        public static bool IsShipyardHijacked(this Game game)
+        {
+            Debug.Assert(game != null);
+
+            if (!game.Map.At(game.Me.Shipyard).IsOccupied)
+                return false;
+
+            foreach (Ship ship in game.Me.Ships.Values)
+            {
+                if (ship.Position == game.Me.Shipyard.Position)
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }
