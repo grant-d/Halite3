@@ -43,7 +43,7 @@ namespace Halite3
 
                 int maxShips = 12 + game.Map.Width / 8; // 32->20, 40->21, 48->22, 56->23, 64->24
                 int maxDropOffs = -1 + game.Map.Width / 20; // 32->0, 40->1, 48->1, 64->2
-                //int maxRadius = -1 + game.Map.Width / 6; // 32->4, 40->6, 48->7, 64->9
+                int maxRadius = -1 + game.Map.Width / 6; // 32->4, 40->6, 48->7, 64->9
                 int minBuildTurn = Constants.MaxTurns * 5 / 10;
                 int maxBuildTurn = Constants.MaxTurns * 8 / 10;
 
@@ -57,14 +57,6 @@ namespace Halite3
                         continue;
 
                     var commandQueue = new List<Command>();
-
-                    //if (game.IsShipyardHijacked())
-                    //{
-                    //    if (game.Me.Halite >= Constants.ShipCost)
-                    //    {
-                    //        commandQueue.Add(Shipyard.SpawnShip());
-                    //    }
-                    //}
 
                     if (game.Me.Ships.Count >= maxShips
                         && game.Me.Dropoffs.Count < maxDropOffs
@@ -123,7 +115,11 @@ namespace Halite3
                                         continue;
                                     }
 
-                                    Position nextPos = game.Map.GetRichestLocalSquare(ship.Position);
+                                    Position nextPos = game.Map.GetRichestLocalSquare(ship.Position, 1);
+                                    if (!IsWorthMining(game.Map.At(nextPos).Halite))
+                                    {
+                                        nextPos = game.Map.GetRichestLocalSquare(nextPos, maxRadius);
+                                    }
 
                                     double dice = rng.NextDouble();
                                     if (dice < 0.15)
