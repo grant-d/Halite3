@@ -4,7 +4,7 @@ namespace Halite3.Hlt
 {
     public static class GameExtensions
     {
-        public static (Position Position, int Distance) GetClosestBase(this Game game, Ship ship)
+        public static (Position Position, int Distance) GetClosestDrop(this Game game, Ship ship)
         {
             Debug.Assert(game != null);
             Debug.Assert(ship != null);
@@ -29,7 +29,7 @@ namespace Halite3.Hlt
             return (pos, steps);
         }
 
-        public static int GetManhattanDistanceFromAllBases(this Game game, Ship ship)
+        public static int GetAggregateDistanceFromAllDrops(this Game game, Ship ship)
         {
             Debug.Assert(game != null);
             Debug.Assert(ship != null);
@@ -47,7 +47,7 @@ namespace Halite3.Hlt
             return dist;
         }
 
-        public static bool IsShipOnAnyBase(this Game game, Ship ship)
+        public static bool IsShipOnDrop(this Game game, Ship ship)
         {
             Debug.Assert(game != null);
             Debug.Assert(ship != null);
@@ -78,13 +78,8 @@ namespace Halite3.Hlt
             if (!game.Map.At(game.Me.Shipyard).IsOccupied)
                 return false;
 
-            foreach (Ship ship in game.Me.Ships.Values)
-            {
-                if (ship.Position == game.Me.Shipyard.Position)
-                {
-                    return false;
-                }
-            }
+            if (game.Map.At(game.Me.Shipyard).Ship.Owner.Id == game.MyId.Id)
+                return false;
 
             return true;
         }

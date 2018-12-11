@@ -33,7 +33,7 @@ namespace Halite3
 
             using (var game = new Game())
             {
-                Position richestMine = game.Map.GetRichestLocalMine(game.Me.Shipyard.Position, game.Map.Width / 4);
+                Position richestMine = game.Map.GetRichestLocalRadius(game.Me.Shipyard.Position, game.Map.Width / 4);
 
                 // At this point "game" variable is populated with initial map data.
                 // This is a good place to do computationally expensive start-up pre-processing.
@@ -88,7 +88,7 @@ namespace Halite3
                             states.Add(ship.Id, status = new ShipStatus { State = ShipState.None });
                         }
 
-                        (Position Position, int Distance) closestBase = game.GetClosestBase(ship);
+                        (Position Position, int Distance) closestBase = game.GetClosestDrop(ship);
                         var turnsRemaining = Constants.MaxTurns - game.TurnNumber;
 
                         Log.LogMessage($"Remaining {turnsRemaining} of {Constants.MaxTurns}");
@@ -123,34 +123,26 @@ namespace Halite3
                                         continue;
                                     }
 
-                                    Position nextPos = game.Map.GetRichestLocalMine(ship.Position, 1);
-                                    if (!IsWorthMining(game.Map.At(nextPos).Halite))
-                                    {
-                                        nextPos = game.Map.GetRichestLocalMine(ship.Position, 2);
-                                        if (!IsWorthMining(game.Map.At(nextPos).Halite))
-                                        {
-                                            nextPos = game.Map.GetRichestLocalMine(ship.Position, 3);
-                                        }
-                                    }
+                                    Position nextPos = game.Map.GetRichestLocalSquare(ship.Position);
+                                    //if (!IsWorthMining(game.Map.At(nextPos).Halite))
+                                    //{
+                                    //    nextPos = game.Map.GetRichestLocalRadius(ship.Position, 2);
+                                    //    if (!IsWorthMining(game.Map.At(nextPos).Halite))
+                                    //    {
+                                    //        nextPos = game.Map.GetRichestLocalRadius(ship.Position, 3);
+                                    //    }
+                                    //}
 
                                     double dice = rng.NextDouble();
-                                    if (dice < 0.25)
+                                    if (dice < 0.15)
                                     {
-                                        dice = rng.NextDouble();
-                                        if (dice < 0.25)
+                                        foreach (Direction direction in DirectionExtensions.AllCardinals)
                                         {
-                                            nextPos = richestMine;
-                                        }
-                                        else
-                                        {
-                                            foreach (Direction direction in DirectionExtensions.AllCardinals)
+                                            Position pos = ship.Position.DirectionalOffset(direction);
+                                            if (game.Map.At(pos).IsEmpty && pos != nextPos)
                                             {
-                                                Position pos = ship.Position.DirectionalOffset(direction);
-                                                if (game.Map.At(pos).IsEmpty && pos != nextPos)
-                                                {
-                                                    nextPos = pos;
-                                                    break;
-                                                }
+                                                nextPos = pos;
+                                                break;
                                             }
                                         }
                                     }
@@ -167,7 +159,7 @@ namespace Halite3
                                 {
                                     states[ship.Id].State = ShipState.Returning;
 
-                                    if (game.IsShipOnAnyBase(ship))
+                                    if (game.IsShipOnDrop(ship))
                                     {
                                         goto case ShipState.None;
                                     }
@@ -222,7 +214,7 @@ namespace Halite3
                 if (status.State != ShipState.Mining)
                     continue;
 
-                int dist = game.GetManhattanDistanceFromAllBases(ship);
+                int dist = game.GetAggregateDistanceFromAllDrops(ship);
                 if (dist > best)
                 {
                     best = dist;
