@@ -121,19 +121,39 @@ namespace Halite3
                                         continue;
                                     }
 
-                                    Position mine = game.Map.GetRichestLocalMine(ship.Position, 1);
-                                    if (!IsWorthMining(game.Map.At(mine).Halite))
+                                    Position nextPos = game.Map.GetRichestLocalMine(ship.Position, 1);
+                                    if (!IsWorthMining(game.Map.At(nextPos).Halite))
                                     {
-                                        mine = game.Map.GetRichestLocalMine(ship.Position, 2);
-                                        //if (!IsWorthMining(game.Map.At(mine).Halite))
-                                        //{
-                                        //    mine = richestMine;
-                                        //}
+                                        nextPos = game.Map.GetRichestLocalMine(ship.Position, 2);
+                                        if (!IsWorthMining(game.Map.At(nextPos).Halite))
+                                        {
+                                            nextPos = game.Map.GetRichestLocalMine(ship.Position, 3);
+                                        }
                                     }
 
-                                    if (mine != ship.Position)
+                                    if (rng.NextDouble() < 0.25)
                                     {
-                                        Direction dir = game.Map.NaiveNavigate(ship, mine);
+                                        if (rng.NextDouble() < 0.1)
+                                        {
+                                            nextPos = richestMine;
+                                        }
+                                        else
+                                        {
+                                            foreach (Direction direction in DirectionExtensions.AllCardinals)
+                                            {
+                                                Position pos = ship.Position.DirectionalOffset(direction);
+                                                if (game.Map.At(pos).IsEmpty && pos != nextPos)
+                                                {
+                                                    nextPos = pos;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if (nextPos != ship.Position)
+                                    {
+                                        Direction dir = game.Map.NaiveNavigate(ship, nextPos);
                                         commandQueue.Add(ship.Move(dir));
                                     }
                                 }

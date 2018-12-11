@@ -15,6 +15,8 @@ namespace Halite3.Hlt
             if (radius == 0)
                 return mine;
 
+            // TODO: Calc based on quadrant
+
             int halite = map.At(mine).Halite;
             for (int x = root.X - radius; x <= root.X + radius; x++)
             {
