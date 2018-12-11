@@ -34,13 +34,15 @@ namespace Halite3
 
             using (var game = new Game())
             {
+                Position richestMine = game.Map.GetRichestLocalMine(game.Me.Shipyard.Position, game.Map.Width / 4);
+
                 // At this point "game" variable is populated with initial map data.
                 // This is a good place to do computationally expensive start-up pre-processing.
                 // As soon as you call "ready" function below, the 2 second per turn timer will start.
                 Game.Ready("MyCSharpBot");
                 Log.LogMessage("Successfully created bot! My Player ID is " + game.MyId + ". Bot rng seed is " + rngSeed + ".");
 
-                int maxShips = 8 + game.Map.Width / 8; // 32->12, 40->13, 48->14, 64->16
+                int maxShips = 12 + game.Map.Width / 8; // 32->12, 40->13, 48->14, 64->16
                 int maxDropOffs = 0 + game.Map.Width / 16; // 32->2, 40->2, 48->3, 64->4
                 int maxRadius = -1 + game.Map.Width / 6; // 32->4, 40->6, 48->7, 64->9
 
@@ -119,7 +121,7 @@ namespace Halite3
                                         continue;
                                     }
 
-                                    Position mine = game.Map.GetRichestLocalMine(ship, 1);
+                                    Position mine = game.Map.GetRichestLocalMine(ship.Position, 1);
                                     if (mine != ship.Position)
                                     {
                                         Direction dir = game.Map.NaiveNavigate(ship, mine);
