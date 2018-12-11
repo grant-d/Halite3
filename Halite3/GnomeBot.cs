@@ -23,7 +23,7 @@ namespace Halite3
     public sealed class GnomeBot
     {
         private const double CostFactor = 1.5;
-        private const int MaxBuildTurn = 200;
+        private const int MaxBuildTurn = 350;
 
         public static void Main(string[] args)
         {
@@ -57,7 +57,7 @@ namespace Halite3
 
                     if (game.IsShipyardHijacked())
                     {
-                        if (game.Me.Halite > Constants.ShipCost)
+                        if (game.Me.Halite >= Constants.ShipCost)
                         {
                             commandQueue.Add(Shipyard.Spawn());
                         }
@@ -112,7 +112,7 @@ namespace Halite3
                                         goto case ShipState.Returning;
                                     }
 
-                                    if (game.Map.At(ship.Position).Halite > Constants.MaxHalite / 10)
+                                    if (WorthMining(game.Map.At(ship.Position).Halite))
                                     {
                                         states[ship.Id].State = ShipState.Mining;
                                         commandQueue.Add(ship.Stay());
@@ -166,6 +166,9 @@ namespace Halite3
                 }
             }
         }
+
+        private static bool WorthMining(int halite)
+            => halite / Constants.ExtractRatio > halite / Constants.MoveCostRatio;
 
         private static Ship GetFurthestShip(Player player, Game game, IReadOnlyDictionary<EntityId, ShipStatus> shipStatus)
         {
@@ -223,20 +226,54 @@ namespace Halite3
             if (game.TurnNumber >= 6)
                 return false;
 
-            var commands = new List<Command>(5);
+            var commandQueue = new List<Command>(5);
             foreach (Ship ship in game.Me.Ships.Values)
             {
                 if (ship.Position == game.Me.Shipyard.Position)
                 {
-                    var dir = (Direction)"nesw"[game.TurnNumber - 2];
-                    commands.Add(ship.Move(dir));
+                    foreach (Direction dir in DirectionExtensions.AllCardinals)
+                    {
+                        Position pos = ship.Position.DirectionalOffset(dir);
+                        if (game.Map.At(pos).IsEmpty)
+                        {
+                            Direction dir1 = game.Map.NaiveNavigate(ship, pos);
+                            commandQueue.Add(ship.Move(dir1));
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    int halite = game.Map.At(ship.Position).Halite;
+                    if (!WorthMining(halite))
+                    {
+                        Position pos = ship.Position;
+                        foreach (Direction dir1 in DirectionExtensions.AllCardinals)
+                        {
+                            if (ship.Position.DirectionalOffset(dir1) == game.Me.Shipyard.Position)
+                                continue;
+
+                            if (game.Map.At(ship.Position.DirectionalOffset(dir1)).Halite > halite)
+                            {
+                                halite = game.Map.At(ship.Position.DirectionalOffset(dir1)).Halite;
+                                pos = ship.Position.DirectionalOffset(dir1);
+                            }
+                        }
+
+                        Direction dir2 = game.Map.NaiveNavigate(ship, pos);
+                        commandQueue.Add(ship.Move(dir2));
+                        break;
+                    }
                 }
             }
 
-            if (game.TurnNumber <= 4)
-                commands.Add(Shipyard.Spawn());
+            if (game.TurnNumber <= 4
+                && !game.Map.At(game.Me.Shipyard.Position).IsOccupied)
+            {
+                commandQueue.Add(Shipyard.Spawn());
+            }
 
-            Game.EndTurn(commands);
+            Game.EndTurn(commandQueue);
             return true;
         }
     }
