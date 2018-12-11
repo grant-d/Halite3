@@ -22,7 +22,7 @@ namespace Halite3
 
     public sealed class GnomeBot
     {
-        private const double CostFactor = 1.5;
+        private const double CostFactor = 1.25;
 
         public static void Main(string[] args)
         {
@@ -41,9 +41,9 @@ namespace Halite3
                 Game.Ready("MyCSharpBot");
                 Log.LogMessage("Successfully created bot! My Player ID is " + game.MyId + ". Bot rng seed is " + rngSeed + ".");
 
-                int maxShips = 10 + game.Map.Width / 8; // 32->14, 40->15, 48->16, 64->18
-                int maxDropOffs = -2 + game.Map.Width / 16; // 32->0, 40->0, 48->1, 64->2
-                int maxRadius = -1 + game.Map.Width / 6; // 32->4, 40->6, 48->7, 64->9
+                int maxShips = 16 + game.Map.Width / 8; // 32->20, 40->21, 48->22, 56->23, 64->24
+                int maxDropOffs = 0; // -2 + game.Map.Width / 16; // 32->0, 40->0, 48->1, 64->2
+                //int maxRadius = -1 + game.Map.Width / 6; // 32->4, 40->6, 48->7, 64->9
                 int maxBuildTurn = Constants.MaxTurns * 8 / 10;
 
                 var states = new Dictionary<EntityId, ShipStatus>();
@@ -132,9 +132,9 @@ namespace Halite3
                                     }
 
                                     double dice = rng.NextDouble();
-                                    if (dice < 0.3)
+                                    if (dice < 0.25)
                                     {
-                                        if (dice < 0.1)
+                                        if (dice < 0.2)
                                         {
                                             nextPos = richestMine;
                                         }
