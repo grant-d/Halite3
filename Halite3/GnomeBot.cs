@@ -18,73 +18,7 @@ namespace Halite3
 
             using (var game = new Game())
             {
-                var costField = new CostField(game);
-                var intgField = new IntegrationField(costField, game.Me.Shipyard.Position);
-                var flowField = new FlowField(intgField);
-
                 Log.LogMessage(game.Map.GetMinMaxHalite().ToString());
-
-                var sb = new StringBuilder();
-
-                Log.LogMessage("MAP FIELD");
-                for (var y = 0; y < flowField.Height; y++)
-                {
-                    sb.Clear();
-                    for (var x = 0; x < flowField.Width; x++)
-                    {
-                        var pos = new Position(x, y);
-                        if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
-                            sb.Append((game.Map.At(pos).Halite.ToString() + "**").PadRight(6));
-                        else
-                            sb.Append((game.Map.At(pos).Halite.ToString() + " |").PadRight(6));
-                    }
-                    Log.LogMessage(sb.ToString());
-                }
-
-                Log.LogMessage("COST FIELD");
-                for (var y = 0; y < flowField.Height; y++)
-                {
-                    sb.Clear();
-                    for (var x = 0; x < flowField.Width; x++)
-                    {
-                        var pos = new Position(x, y);
-                        if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
-                            sb.Append((costField.At(pos).Home.ToString() + "**").PadRight(6));
-                        else
-                            sb.Append((costField.At(pos).Home.ToString() + " |").PadRight(6));
-                    }
-                    Log.LogMessage(sb.ToString());
-                }
-
-                Log.LogMessage("INTEGRATION FIELD");
-                for (var y = 0; y < flowField.Height; y++)
-                {
-                    sb.Clear();
-                    for (var x = 0; x < flowField.Width; x++)
-                    {
-                        var pos = new Position(x, y);
-                        if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
-                            sb.Append((intgField.At(pos).Home.ToString() + "**").PadRight(6));
-                        else
-                            sb.Append((intgField.At(pos).Home.ToString() + " |").PadRight(6));
-                    }
-                    Log.LogMessage(sb.ToString());
-                }
-
-                Log.LogMessage("FLOW FIELD");
-                for (var y = 0; y < flowField.Height; y++)
-                {
-                    sb.Clear();
-                    for (var x = 0; x < flowField.Width; x++)
-                    {
-                        var pos = new Position(x, y);
-                        if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
-                            sb.Append((flowField.At(pos).Home.ToSymbol() + "**").PadRight(6));
-                        else
-                            sb.Append((flowField.At(pos).Home.ToSymbol() + "  ").PadRight(6));
-                    }
-                    Log.LogMessage(sb.ToString());
-                }
 
                 // At this point "game" variable is populated with initial map data.
                 // This is a good place to do computationally expensive start-up pre-processing.
@@ -94,7 +28,17 @@ namespace Halite3
 
                 while (true)
                 {
-                    game.UpdateFrame(); 
+                    game.UpdateFrame();
+
+                    var costMine = new CostField(game, 254, CostCell.Wall);
+                    var intgMine = new IntegrationField(costMine, new Position(6, 6));
+                    var flowMine = new FlowField(intgMine);
+                    LogFields(game, "MINE", costMine, intgMine, flowMine);
+
+                    var costHome = new CostField(game, 1, 254);
+                    var intgHome = new IntegrationField(costHome, game.Me.Shipyard.Position);
+                    var flowHome = new FlowField(intgHome);
+                    LogFields(game, "HOME", costHome, intgHome, flowHome);
 
                     var commandQueue = new List<Command>();
 
@@ -105,17 +49,17 @@ namespace Halite3
 
                     foreach (Ship ship in game.Me.Ships.Values)
                     {
-                        FlowCell flow = flowField.At(ship.Position);
-
                         if (ship.IsFull)
                         {
-                            FlowDirection flowDir = flow.Home;
+                            FlowCell flow = flowHome.At(ship.Position);
+                            FlowDirection flowDir = flow.Direction;
                             Direction dir = game.Map.NaiveNavigate(ship, flowDir.ToPosition(ship.Position));
                             commandQueue.Add(Command.Move(ship.Id, dir));
                         }
                         else
                         {
-                            FlowDirection flowDir = flow.Mine;
+                            FlowCell flow = flowMine.At(ship.Position);
+                            FlowDirection flowDir = flow.Direction;
                             Direction dir = game.Map.NaiveNavigate(ship, flowDir.ToPosition(ship.Position));
                             commandQueue.Add(Command.Move(ship.Id, dir));
                         }
@@ -123,6 +67,71 @@ namespace Halite3
 
                     Game.EndTurn(commandQueue);
                 }
+            }
+        }
+
+        private static void LogFields(Game game, string title, CostField costField, IntegrationField intgField, FlowField flowField)
+        {
+            var sb = new StringBuilder();
+
+            Log.LogMessage("MAP FIELD " + title);
+            for (var y = 0; y < flowField.Height; y++)
+            {
+                sb.Clear();
+                for (var x = 0; x < flowField.Width; x++)
+                {
+                    var pos = new Position(x, y);
+                    if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
+                        sb.Append((game.Map.At(pos).Halite.ToString() + "**").PadRight(6));
+                    else
+                        sb.Append((game.Map.At(pos).Halite.ToString() + " |").PadRight(6));
+                }
+                Log.LogMessage(sb.ToString());
+            }
+
+            Log.LogMessage("COST FIELD " + title);
+            for (var y = 0; y < flowField.Height; y++)
+            {
+                sb.Clear();
+                for (var x = 0; x < flowField.Width; x++)
+                {
+                    var pos = new Position(x, y);
+                    if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
+                        sb.Append((costField.At(pos).Cost.ToString() + "**").PadRight(6));
+                    else
+                        sb.Append((costField.At(pos).Cost.ToString() + " |").PadRight(6));
+                }
+                Log.LogMessage(sb.ToString());
+            }
+
+            Log.LogMessage("INTEGRATION FIELD " + title);
+            for (var y = 0; y < flowField.Height; y++)
+            {
+                sb.Clear();
+                for (var x = 0; x < flowField.Width; x++)
+                {
+                    var pos = new Position(x, y);
+                    if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
+                        sb.Append((intgField.At(pos).Cost.ToString() + "**").PadRight(6));
+                    else
+                        sb.Append((intgField.At(pos).Cost.ToString() + " |").PadRight(6));
+                }
+                Log.LogMessage(sb.ToString());
+            }
+
+            Log.LogMessage("FLOW FIELD " + title);
+            for (var y = 0; y < flowField.Height; y++)
+            {
+                sb.Clear();
+                for (var x = 0; x < flowField.Width; x++)
+                {
+                    var pos = new Position(x, y);
+                    if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
+                        sb.Append((flowField.At(pos).Direction.ToSymbol() + "**").PadRight(6));
+                    else
+                        sb.Append((flowField.At(pos).Direction.ToSymbol() + "  ").PadRight(6));
+                }
+                Log.LogMessage(sb.ToString());
             }
         }
     }

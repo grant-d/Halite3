@@ -11,7 +11,7 @@ namespace Halite3.Hlt
         public int Width { get; }
         public int Height { get; }
 
-        public CostField(Game game)
+        public CostField(Game game, byte myDrop, byte theirDrop)
         {
             Debug.Assert(game != null);
 
@@ -28,8 +28,7 @@ namespace Halite3.Hlt
 
                 for (int x = 0; x < Width; x++)
                 {
-                    int mine = 1;
-                    int home = 1;
+                    int cost = 1;
 
                     MapCell mapCell = game.Map.At(new Position(x, y));
 
@@ -37,24 +36,21 @@ namespace Halite3.Hlt
                     {
                         if (mapCell.Structure.Owner.Id == game.MyId.Id)
                         {
-                            mine = CostCell.Wall;
-                            home = 1;
+                            cost = myDrop;
                         }
                         else
                         {
-                            mine = CostCell.Wall;
-                            home = CostCell.Wall;
+                            cost = theirDrop;
                         }
                     }
                     else
                     {
                         double norm = mapCell.Halite * 253.0 / maxHalite; // 0-253
 
-                        mine = (int)(254 - norm);
-                        home = (int)(1 + norm);
+                        cost = (int)(1 + norm);
                     }
 
-                    _cells[y][x] = new CostCell((byte)mine, (byte)home);
+                    _cells[y][x] = new CostCell((byte)cost);
                 }
             }
         }

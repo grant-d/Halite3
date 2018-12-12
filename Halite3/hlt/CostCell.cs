@@ -1,4 +1,4 @@
-﻿namespace Halite3.Hlt
+namespace Halite3.Hlt
 {
     // https://leifnode.com/2013/12/flow-field-pathfinding/
 
@@ -6,13 +6,11 @@
     {
         public const byte Wall = byte.MaxValue;
 
-        public byte Mine { get; set; }
-        public byte Home { get; set; }
+        public byte Cost { get; set; }
 
-        public CostCell(byte mine, byte home)
+        public CostCell(byte cost)
         {
-            Mine = mine;
-            Home = home;
+            Cost = cost;
         }
     }
 }

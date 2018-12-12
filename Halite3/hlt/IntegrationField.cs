@@ -28,21 +28,20 @@ namespace Halite3.Hlt
                 for (int x = 0; x < Width; x++)
                 {
                     // 1 - The algorithm starts by resetting the value of all cells to a large value (65535).
-                    _cells[y][x] = new IntegrationCell(IntegrationCell.Wall, IntegrationCell.Wall);
+                    _cells[y][x] = new IntegrationCell(IntegrationCell.Wall);
                 }
             }
 
-            BuildMine(costField, root);
-            BuildHome(costField, root);
+            Build(costField, root);
         }
 
-        private void BuildMine(CostField costField, Position goal)
+        private void Build(CostField costField, Position goal)
         {
             Debug.Assert(costField != null);
             Debug.Assert(goal != null);
 
             // 2 - The goal node then gets its total path cost set to zero.
-            At(goal).Mine = 0;
+            At(goal).Cost = 0;
 
             // 2 - And gets added to the open list.
             // From this point the goal node is treated like a normal node.
@@ -69,63 +68,20 @@ namespace Halite3.Hlt
                     Position neighbor = neighbors[i];
 
                     // 4- If the neighbor has a cost of 255 then it gets ignored completely.
-                    byte neighborCost = costField.At(neighbor).Mine;
+                    byte neighborCost = costField.At(neighbor).Cost;
                     if (neighborCost == CostCell.Wall)
                         continue;
 
                     // 4 - All of the current node’s neighbors get their total cost set to the current node’s cost
                     // plus their cost read from the cost field,
-                    ushort cost = (ushort)(At(currentPos).Mine + neighborCost);
+                    ushort cost = (ushort)(At(currentPos).Cost + neighborCost);
 
                     // 4 - This happens if and only if the new calculated cost is lower than the old cost.
-                    if (cost < At(neighbor).Mine)
+                    if (cost < At(neighbor).Cost)
                     {
-                        At(neighbor).Mine = cost;
+                        At(neighbor).Cost = cost;
 
                         // 4 - Then they get added to the back of the open list.
-                        if (!openList.Contains(neighbor))
-                            openList.Enqueue(neighbor);
-                    }
-                }
-            }
-        }
-
-        private void BuildHome(CostField costField, Position goal)
-        {
-            Debug.Assert(costField != null);
-            Debug.Assert(goal != null);
-
-            At(goal).Home = 0;
-
-            var openList = new Queue<Position>();
-            openList.Enqueue(goal);
-
-            while (openList.Count > 0)
-            {
-                Position currentPos = openList.Dequeue();
-
-                var neighbors = new Position[4]
-                {
-                    new Position(currentPos.X, currentPos.Y - 1), // N
-                    new Position(currentPos.X + 1, currentPos.Y), // E
-                    new Position(currentPos.X, currentPos.Y + 1), // S
-                    new Position(currentPos.X - 1, currentPos.Y), // W
-                };
-
-                for (int i = 0; i < neighbors.Length; i++)
-                {
-                    Position neighbor = neighbors[i];
-
-                    byte neighborCost = costField.At(neighbor).Home;
-                    //if (neighborCost == CostCell.Wall)
-                    //    continue;
-
-                    ushort cost = (ushort)(costField.At(currentPos).Home + neighborCost);
-
-                    if (cost < At(neighbor).Home)
-                    {
-                        At(neighbor).Home = cost;
-
                         if (!openList.Contains(neighbor))
                             openList.Enqueue(neighbor);
                     }

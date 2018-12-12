@@ -6,14 +6,11 @@ namespace Halite3.Hlt
     {
         public const ushort Wall = ushort.MaxValue;
 
-        public ushort Mine { get; set; }
+        public ushort Cost { get; set; }
 
-        public ushort Home { get; set; }
-
-        public IntegrationCell(ushort mine, ushort home)
+        public IntegrationCell(ushort cost)
         {
-            Mine = mine;
-            Home = home;
+            Cost = cost;
         }
     }
 }

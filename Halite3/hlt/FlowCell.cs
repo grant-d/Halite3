@@ -21,14 +21,11 @@ namespace Halite3.Hlt
 
     public sealed class FlowCell
     {
-        public FlowDirection Mine { get; set; }
+        public FlowDirection Direction { get; set; }
 
-        public FlowDirection Home { get; set; }
-
-        public FlowCell(FlowDirection mine, FlowDirection home)
+        public FlowCell(FlowDirection direction)
         {
-            Mine = mine;
-            Home = home;
+            Direction = direction;
         }
     }
 
@@ -74,7 +71,7 @@ namespace Halite3.Hlt
 
                 //case FlowDirection.SW: return "↙";
                 case FlowDirection.S: return "↓";
-                //case FlowDirection.SE: return "↘";
+                    //case FlowDirection.SE: return "↘";
             }
         }
     }

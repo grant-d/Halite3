@@ -29,11 +29,8 @@ namespace Halite3.Hlt
                 {
                     var current = new Position(x, y);
 
-                    ushort mineBest = IntegrationCell.Wall;
-                    FlowDirection mineDir = FlowDirection._;
-
-                    ushort homeBest = IntegrationCell.Wall;
-                    FlowDirection homeDir = FlowDirection._;
+                    ushort best = IntegrationCell.Wall;
+                    FlowDirection direction = FlowDirection._;
 
                     foreach (FlowDirection dir in Enum.GetValues(typeof(FlowDirection)))
                     {
@@ -42,22 +39,15 @@ namespace Halite3.Hlt
 
                         var pos = dir.ToPosition(current);
 
-                        ushort mine = integrationField.At(pos).Mine;
-                        if (mine < mineBest)
+                        ushort cost = integrationField.At(pos).Cost;
+                        if (cost < best)
                         {
-                            mineBest = mine;
-                            mineDir = dir;
-                        }
-
-                        ushort home = integrationField.At(pos).Home;
-                        if (home < homeBest)
-                        {
-                            homeBest = home;
-                            homeDir = dir;
+                            best = cost;
+                            direction = dir;
                         }
                     }
 
-                    _cells[y][x] = new FlowCell(mineDir, homeDir);
+                    _cells[y][x] = new FlowCell(direction);
                 }
             }
         }
