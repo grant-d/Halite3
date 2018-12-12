@@ -16,21 +16,21 @@ namespace Halite3.Hlt
         {
             get
             {
-                int index = Normalize(position);
+                int index = position.ToIndex(Width, Height);
                 return _cells[index];
             }
 
             private set
             {
-                int index = Normalize(position);
+                int index = position.ToIndex(Width, Height);
                 _cells[index] = value;
             }
         }
 
-        public WaveField(CostField costField, Position root)
+        public WaveField(CostField costField, Position goal)
         {
             Debug.Assert(costField != null);
-            Debug.Assert(root != null);
+            Debug.Assert(goal != null);
 
             Width = costField.Width;
             Height = costField.Height;
@@ -45,16 +45,8 @@ namespace Halite3.Hlt
                 }
             }
 
-            Build(costField, root);
-        }
-
-        private void Build(CostField costField, Position goal)
-        {
-            Debug.Assert(costField != null);
-            Debug.Assert(goal != null);
-
             // 2 - The goal node then gets its total path cost set to zero.
-            this[goal] = WaveCell.Zero;
+            this[goal] = WaveCell.Goal;
 
             // 2 - And gets added to the open list.
             // From this point the goal node is treated like a normal node.
@@ -100,14 +92,6 @@ namespace Halite3.Hlt
                     }
                 }
             }
-        }
-
-        private int Normalize(Position position)
-        {
-            int x = ((position.X % Width) + Width) % Width;
-            int y = ((position.Y % Height) + Height) % Height;
-
-            return y * Width + x;
         }
     }
 }

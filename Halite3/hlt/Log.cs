@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 
 namespace Halite3.Hlt
@@ -20,7 +21,7 @@ namespace Halite3.Hlt
             s_instance = new Log(f);
         }
 
-        public static void LogMessage(string message)
+        public static void Message(string message)
         {
             try
             {

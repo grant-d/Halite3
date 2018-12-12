@@ -57,7 +57,7 @@ namespace Halite3.Hlt
         public void UpdateFrame()
         {
             TurnNumber = GameInput.ReadInput().GetInt();
-            Log.LogMessage("=============== TURN " + TurnNumber + " ================");
+            Log.Message("=============== TURN " + TurnNumber + " ================");
 
             for (int i = 0; i < Players.Count; ++i)
             {

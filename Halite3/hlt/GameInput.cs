@@ -48,7 +48,7 @@ namespace Halite3.Hlt
             }
             catch (Exception e)
             {
-                Log.LogMessage("Input connection from server closed. Exiting...");
+                Log.Message("Input connection from server closed. Exiting...");
                 throw new InvalidOperationException(e.Message);
             }
         }

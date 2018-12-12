@@ -93,12 +93,11 @@ namespace Halite3.Hlt
             return false;
         }
 
-        public static bool IsNextToDrop(this Game game, Position position, out Direction direction, out Position target)
+        public static bool IsNextToDrop(this Game game, Position position, out Position target)
         {
             Debug.Assert(game != null);
             Debug.Assert(position != null);
 
-            direction = Direction.Still;
             target = position;
 
             foreach (Direction dir in DirectionExtensions.AllCardinals)
@@ -107,7 +106,6 @@ namespace Halite3.Hlt
 
                 if (IsOnDrop(game, pos))
                 {
-                    direction = dir;
                     target = pos;
                     return true;
                 }

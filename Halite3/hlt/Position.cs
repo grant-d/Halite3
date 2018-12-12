@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace Halite3.Hlt
 {
@@ -16,6 +17,18 @@ namespace Halite3.Hlt
         {
             X = x;
             Y = y;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal int ToIndex(int width, int height)
+        {
+            Debug.Assert(width > 0);
+            Debug.Assert(height > 0);
+
+            int x = ((X % width) + width) % width;
+            int y = ((Y % height) + height) % height;
+
+            return y * width + x;
         }
 
         /// <summary>

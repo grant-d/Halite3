@@ -15,18 +15,18 @@ namespace Halite3.Hlt
         {
             get
             {
-                int index = Normalize(position);
+                int index = position.ToIndex(Width, Height);
                 return _cells[index];
             }
 
             private set
             {
-                int index = Normalize(position);
+                int index = position.ToIndex(Width, Height);
                 _cells[index] = value;
             }
         }
 
-        public CostField(Game game, CostCell myDrop, CostCell theirDrop)
+        public CostField(Game game, CostCell myDrop, CostCell theirDrop, bool richIsCheap)
         {
             Debug.Assert(game != null);
 
@@ -41,10 +41,9 @@ namespace Halite3.Hlt
             {
                 for (int x = 0; x < Width; x++)
                 {
-                    CostCell cost = CostCell.Min; // 1
-
                     MapCell mapCell = game.Map[new Position(x, y)];
 
+                    CostCell cost = CostCell.Min; // 1
                     if (mapCell.HasStructure)
                     {
                         if (mapCell.Structure.Owner == game.MyId)
@@ -58,21 +57,19 @@ namespace Halite3.Hlt
                     }
                     else
                     {
-                        double norm = 1 + mapCell.Halite * 253.0 / maxHalite; // 1-254
-                        cost = new CostCell((byte)norm);
+                        // Normalize the amount of halite
+                        int halite = 1 + mapCell.Halite * 253 / maxHalite; // 1-254
+
+                        if (richIsCheap)
+                            halite = 255 - halite; // 254-1
+
+                        Debug.Assert(halite >= 1 && halite <= 254);
+                        cost = new CostCell((byte)halite);
                     }
 
                     _cells[y * Width + x] = cost;
                 }
             }
-        }
-
-        private int Normalize(Position position)
-        {
-            int x = ((position.X % Width) + Width) % Width;
-            int y = ((position.Y % Height) + Height) % Height;
-
-            return y * Width + x;
         }
     }
 }

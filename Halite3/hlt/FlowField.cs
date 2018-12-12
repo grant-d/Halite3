@@ -19,13 +19,13 @@ namespace Halite3.Hlt
         {
             get
             {
-                int index = Normalize(position);
+                int index = position.ToIndex(Width, Height);
                 return _cells[index];
             }
 
             private set
             {
-                int index = Normalize(position);
+                int index = position.ToIndex(Width, Height);
                 _cells[index] = value;
             }
         }
@@ -48,32 +48,26 @@ namespace Halite3.Hlt
                     ushort best = WaveCell.Max.Cost;
                     FlowDirection direction = FlowDirection._;
 
-                    foreach (FlowDirection dir in Enum.GetValues(typeof(FlowDirection)))
-                    {
-                        if (dir == FlowDirection._)
-                            continue;
-
-                        Position pos = dir.FromPosition(current);
-
-                        ushort cost = waveField[pos].Cost;
-                        if (cost < best)
-                        {
-                            best = cost;
-                            direction = dir;
-                        }
-                    }
+                    Check(current, ref best, ref direction, FlowDirection.N);
+                    Check(current, ref best, ref direction, FlowDirection.E);
+                    Check(current, ref best, ref direction, FlowDirection.S);
+                    Check(current, ref best, ref direction, FlowDirection.W);
 
                     _cells[y * Width + x] = new FlowCell(direction);
                 }
             }
-        }
 
-        private int Normalize(Position position)
-        {
-            int x = ((position.X % Width) + Width) % Width;
-            int y = ((position.Y % Height) + Height) % Height;
+            void Check(Position current, ref ushort best, ref FlowDirection direction, FlowDirection dir)
+            {
+                Position pos = dir.FromPosition(current);
 
-            return y * Width + x;
+                ushort cost = waveField[pos].Cost;
+                if (cost < best)
+                {
+                    best = cost;
+                    direction = dir;
+                }
+            }
         }
     }
 }

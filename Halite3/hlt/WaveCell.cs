@@ -4,7 +4,7 @@ namespace Halite3.Hlt
 {
     public readonly struct WaveCell : IEquatable<WaveCell>
     {
-        public static readonly WaveCell Zero = new WaveCell(0);
+        public static readonly WaveCell Goal = new WaveCell(0);
 
         public static readonly WaveCell Max = new WaveCell(ushort.MaxValue);
 

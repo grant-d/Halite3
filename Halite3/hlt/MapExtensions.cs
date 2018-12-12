@@ -112,6 +112,60 @@ namespace Halite3.Hlt
             }
         }
 
+        public static (Position NW, Position SE, int Halite) GetRichestRegion(this Map map, Position position, int length = 2)
+        {
+            Debug.Assert(map != null);
+            Debug.Assert(position != null);
+            Debug.Assert(length >= 0 && length <= map.Width && length <= map.Height);
+
+            if (length <= 1)
+                return (position, position, Sum(position));
+
+            // North
+            var north = new Position(position.X - length, position.Y - length);
+            int halite = Sum(north);
+            Position nw = north;
+
+            // East
+            var east = new Position(position.X + length, position.Y);
+            int sum = Sum(east);
+            if (sum > halite) { nw = east; halite = sum; }
+
+            // South
+            var south = new Position(position.X, position.Y + length);
+            sum = Sum(south);
+            if (sum > halite) { nw = south; halite = sum; }
+
+            // West
+            var west = new Position(position.X - length, position.Y);
+            sum = Sum(west);
+            if (sum > halite) { nw = west; halite = sum; }
+
+            var se = new Position(nw.X + length, nw.Y + length);
+            return (nw, se, halite);
+
+            int Sum(Position origin)
+            {
+                int add = map[origin].Halite;
+
+                if (length == 0)
+                    return add;
+
+                for (int x = origin.X; x <= origin.X + length; x++)
+                {
+                    for (int y = origin.Y; y <= origin.Y + length; y++)
+                    {
+                        var pos = new Position(x, y);
+
+                        int hal = map[pos].Halite;
+                        add += hal;
+                    }
+                }
+
+                return add;
+            }
+        }
+
         public static (Position Position, int Halite) GetRichestLocalRadius(this Map map, Position position, int radius)
         {
             Debug.Assert(map != null);

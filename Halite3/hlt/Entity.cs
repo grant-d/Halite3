@@ -20,7 +20,7 @@ namespace Halite3.Hlt
         }
 
         public override string ToString()
-            => String.Format(CultureInfo.InvariantCulture, "{0}(id={1}, {2}", GetType(), Id, Position);
+            => String.Format(CultureInfo.InvariantCulture, "{0}({1}, {2})", GetType(), Id, Position);
 
         public override bool Equals(object obj)
         {

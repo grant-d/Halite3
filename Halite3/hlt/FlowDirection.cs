@@ -7,12 +7,8 @@ namespace Halite3.Hlt
         _ = 0,
 
         N,
-        //NE,
         E,
-        //SE,
         S,
-        //SW,
         W,
-        //NW
     }
 }
