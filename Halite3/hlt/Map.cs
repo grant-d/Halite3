@@ -18,6 +18,23 @@ namespace Halite3.Hlt
         public int Width { get; }
         public int Height { get; }
 
+#pragma warning disable CA1043 // Use Integral Or String Argument For Indexers
+        public MapCell this[Position position]
+#pragma warning restore CA1043 // Use Integral Or String Argument For Indexers
+        {
+            get
+            {
+                Position normalized = Normalize(position);
+                return _cells[normalized.Y][normalized.X];
+            }
+
+            private set
+            {
+                Position normalized = Normalize(position);
+                _cells[normalized.Y][normalized.X] = value;
+            }
+        }
+
         /// <summary>
         /// Creates a new instance of a GameMap
         /// </summary>
@@ -39,17 +56,17 @@ namespace Halite3.Hlt
         /// <summary>
         /// Normalizes the given Position and then returns the corresponding MapCell.
         /// </summary>
-        public MapCell At(Position position)
-        {
-            Position normalized = Normalize(position);
-            return _cells[normalized.Y][normalized.X];
-        }
+        //public MapCell At(Position position)
+        //{
+        //    Position normalized = Normalize(position);
+        //    return _cells[normalized.Y][normalized.X];
+        //}
 
         /// <summary>
         /// Normalizes the position of an Entity and returns the corresponding MapCell.
         /// </summary>
         public MapCell At(Entity entity)
-            => At(entity.Position);
+            => this[entity.Position];
 
         /// <summary>
         /// A method that computes the Manhattan distance between two locations, and accounts for the toroidal wraparound.
@@ -130,9 +147,9 @@ namespace Halite3.Hlt
             foreach (Direction direction in GetUnsafeMoves(ship.Position, destination))
             {
                 Position targetPos = ship.Position.DirectionalOffset(direction);
-                if (!At(targetPos).IsOccupied)
+                if (!this[targetPos].IsOccupied)
                 {
-                    At(targetPos).MarkUnsafe(ship);
+                    this[targetPos].MarkUnsafe(ship);
                     return direction;
                 }
             }

@@ -47,11 +47,11 @@ namespace Halite3.Hlt
                 {
                     CostCell cost = default;
 
-                    MapCell mapCell = game.Map.At(new Position(x, y));
+                    MapCell mapCell = game.Map[new Position(x, y)];
 
                     if (mapCell.HasStructure)
                     {
-                        if (mapCell.Structure.Owner.Id == game.MyId.Id)
+                        if (mapCell.Structure.Owner == game.MyId)
                         {
                             cost = myDrop;
                         }

@@ -34,16 +34,16 @@ namespace Halite3.Hlt
 
             int Sum(Position pos, Direction dir1, Direction dir2, Direction dir3)
             {
-                int sum = map.At(pos).Halite;
+                int sum = map[pos].Halite;
 
                 Position p1 = north.DirectionalOffset(dir1);
-                sum += map.At(p1).Halite;
+                sum += map[p1].Halite;
 
                 Position p2 = north.DirectionalOffset(dir2);
-                sum += map.At(p2).Halite;
+                sum += map[p2].Halite;
 
                 Position p3 = north.DirectionalOffset(dir3);
-                sum += map.At(p3).Halite;
+                sum += map[p3].Halite;
 
                 return sum;
             }
@@ -83,7 +83,7 @@ namespace Halite3.Hlt
 
             int Sum(Position pos)
             {
-                int sum = map.At(pos).Halite;
+                int sum = map[pos].Halite;
 
                 if (radius == 0)
                     return sum;
@@ -92,7 +92,7 @@ namespace Halite3.Hlt
                 {
                     for (int y = pos.Y - radius; y <= pos.Y + radius; y++)
                     {
-                        sum += map.At(new Position(x, y)).Halite;
+                        sum += map[new Position(x, y)].Halite;
                     }
                 }
 
@@ -107,7 +107,7 @@ namespace Halite3.Hlt
             Debug.Assert(radius >= 0 && radius <= map.Width && radius <= map.Height);
 
             Position mine = position;
-            int halite = map.At(mine).Halite;
+            int halite = map[mine].Halite;
 
             if (radius == 0)
                 return (mine, halite);
@@ -117,13 +117,13 @@ namespace Halite3.Hlt
                 for (int y = position.Y - radius; y <= position.Y + radius; y++)
                 {
                     var pos = new Position(x, y);
-                    MapCell cell = map.At(pos);
+                    MapCell cell = map[pos];
 
                     if (cell.IsEmpty
                         && cell.Halite > halite)
                     {
                         mine = pos;
-                        halite = map.At(pos).Halite;
+                        halite = map[pos].Halite;
                     }
                 }
             }

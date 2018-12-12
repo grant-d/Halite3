@@ -15,7 +15,7 @@ namespace Halite3.Hlt
             {
                 for (int x = 0; x < map.Width; x++)
                 {
-                    MapCell mapCell = map.At(new Position(x, y));
+                    MapCell mapCell = map[new Position(x, y)];
 
                     if (mapCell.Halite < minHalite || minHalite == int.MaxValue)
                         minHalite = mapCell.Halite;
@@ -81,11 +81,11 @@ namespace Halite3.Hlt
                 return true;
             }
 
-            MapCell cell = game.Map.At(position);
+            MapCell cell = game.Map[position];
 
             if (cell.HasStructure
                 && cell.Structure is Dropoff drop
-                && drop.Owner.Id == game.MyId.Id)
+                && drop.Owner == game.MyId)
             {
                 return true;
             }
@@ -123,7 +123,7 @@ namespace Halite3.Hlt
             if (!game.Map.At(game.Me.Shipyard).IsOccupied)
                 return false;
 
-            if (game.Map.At(game.Me.Shipyard).Ship.Owner.Id == game.MyId.Id)
+            if (game.Map.At(game.Me.Shipyard).Ship.Owner == game.MyId)
                 return false;
 
             return true;

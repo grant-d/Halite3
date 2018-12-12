@@ -81,10 +81,10 @@ namespace Halite3
                 for (var x = 0; x < game.Map.Width; x++)
                 {
                     var pos = new Position(x, y);
-                    if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
-                        sb.Append((game.Map.At(pos).Halite.ToString() + "**").PadRight(6));
+                    if (game.Map[pos].HasStructure)
+                        sb.Append((game.Map[pos].Halite.ToString() + "**").PadRight(6));
                     else
-                        sb.Append((game.Map.At(pos).Halite.ToString() + " |").PadRight(6));
+                        sb.Append((game.Map[pos].Halite.ToString() + " |").PadRight(6));
                 }
                 Log.LogMessage(sb.ToString());
             }
@@ -96,7 +96,7 @@ namespace Halite3
                 for (var x = 0; x < costField.Width; x++)
                 {
                     var pos = new Position(x, y);
-                    if (game.Map.At(pos).HasStructure)// || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
+                    if (game.Map[pos].HasStructure)
                         sb.Append((costField[pos].Cost.ToString() + "**").PadRight(6));
                     else
                         sb.Append((costField[pos].Cost.ToString() + " |").PadRight(6));
@@ -111,7 +111,7 @@ namespace Halite3
                 for (var x = 0; x < intgField.Width; x++)
                 {
                     var pos = new Position(x, y);
-                    if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
+                    if (game.Map[pos].HasStructure)
                         sb.Append((intgField[pos].Cost.ToString() + "**").PadRight(6));
                     else
                         sb.Append((intgField[pos].Cost.ToString() + " |").PadRight(6));
@@ -126,7 +126,7 @@ namespace Halite3
                 for (var x = 0; x < flowField.Width; x++)
                 {
                     var pos = new Position(x, y);
-                    if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
+                    if (game.Map[pos].HasStructure)
                         sb.Append((flowField[pos].Direction.ToSymbol() + "**").PadRight(6));
                     else
                         sb.Append((flowField[pos].Direction.ToSymbol() + "  ").PadRight(6));
