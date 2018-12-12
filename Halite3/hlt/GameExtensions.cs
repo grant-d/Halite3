@@ -4,23 +4,28 @@ namespace Halite3.Hlt
 {
     public static class GameExtensions
     {
-        public static int GetMaxHalite(this Map map)
+        public static (int Min, int Max) GetMinMaxHalite(this Map map)
         {
             Debug.Assert(map != null);
 
+            int minHalite = int.MaxValue;
             int maxHalite = 0;
+
             for (int y = 0; y < map.Height; y++)
             {
                 for (int x = 0; x < map.Width; x++)
                 {
                     MapCell mapCell = map.At(new Position(x, y));
 
+                    if (mapCell.Halite < minHalite || minHalite == int.MaxValue)
+                        minHalite = mapCell.Halite;
+
                     if (mapCell.Halite > maxHalite)
                         maxHalite = mapCell.Halite;
                 }
             }
 
-            return maxHalite;
+            return (minHalite, maxHalite);
         }
 
         public static (Position Position, int Distance) GetClosestDrop(this Game game, Ship ship)

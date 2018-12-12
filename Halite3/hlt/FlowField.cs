@@ -30,10 +30,10 @@ namespace Halite3.Hlt
                     var current = new Position(x, y);
 
                     ushort mineBest = IntegrationCell.Wall;
-                    FlowDirection mineDir = FlowDirection.None;
+                    FlowDirection mineDir = FlowDirection._;
 
                     ushort homeBest = IntegrationCell.Wall;
-                    FlowDirection homeDir = FlowDirection.None;
+                    FlowDirection homeDir = FlowDirection._;
 
                     foreach (FlowDirection dir in Enum.GetValues(typeof(FlowDirection)))
                     {

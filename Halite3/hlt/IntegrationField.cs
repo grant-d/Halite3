@@ -12,9 +12,10 @@ namespace Halite3.Hlt
         public int Width { get; }
         public int Height { get; }
 
-        public IntegrationField(CostField costField)
+        public IntegrationField(CostField costField, Position root)
         {
             Debug.Assert(costField != null);
+            Debug.Assert(root != null);
 
             Width = costField.Width;
             Height = costField.Height;
@@ -31,22 +32,22 @@ namespace Halite3.Hlt
                 }
             }
 
-            BuildMine(costField);
-            BuildHome(costField);
+            BuildMine(costField, root);
+            BuildHome(costField, root);
         }
 
-        private void BuildMine(CostField costField)
+        private void BuildMine(CostField costField, Position goal)
         {
             Debug.Assert(costField != null);
+            Debug.Assert(goal != null);
 
             // 2 - The goal node then gets its total path cost set to zero.
-            var goalPos = new Position(0, 0);
-            At(goalPos).Mine = 0;
+            At(goal).Mine = 0;
 
             // 2 - And gets added to the open list.
             // From this point the goal node is treated like a normal node.
             var openList = new Queue<Position>();
-            openList.Enqueue(goalPos);
+            openList.Enqueue(goal);
 
             // 5. This algorithm continues until the open list is empty.
             while (openList.Count > 0)
@@ -63,12 +64,12 @@ namespace Halite3.Hlt
                     new Position(currentPos.X - 1, currentPos.Y), // W
                 };
 
-                for (var i = 0; i < neighbors.Length; i++)
+                for (int i = 0; i < neighbors.Length; i++)
                 {
                     Position neighbor = neighbors[i];
 
                     // 4- If the neighbor has a cost of 255 then it gets ignored completely.
-                    var neighborCost = costField.At(neighbor).Mine;
+                    byte neighborCost = costField.At(neighbor).Mine;
                     if (neighborCost == CostCell.Wall)
                         continue;
 
@@ -89,15 +90,15 @@ namespace Halite3.Hlt
             }
         }
 
-        private void BuildHome(CostField costField)
+        private void BuildHome(CostField costField, Position goal)
         {
             Debug.Assert(costField != null);
+            Debug.Assert(goal != null);
 
-            var goalPos = new Position(0, 0);
-            At(goalPos).Home = 0;
+            At(goal).Home = 0;
 
             var openList = new Queue<Position>();
-            openList.Enqueue(goalPos);
+            openList.Enqueue(goal);
 
             while (openList.Count > 0)
             {
@@ -111,11 +112,11 @@ namespace Halite3.Hlt
                     new Position(currentPos.X - 1, currentPos.Y), // W
                 };
 
-                for (var i = 0; i < neighbors.Length; i++)
+                for (int i = 0; i < neighbors.Length; i++)
                 {
                     Position neighbor = neighbors[i];
 
-                    var neighborCost = costField.At(neighbor).Home;
+                    byte neighborCost = costField.At(neighbor).Home;
                     if (neighborCost == CostCell.Wall)
                         continue;
 

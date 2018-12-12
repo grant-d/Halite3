@@ -18,7 +18,7 @@ namespace Halite3.Hlt
             Width = game.Map.Width;
             Height = game.Map.Height;
 
-            int maxHalite = game.Map.GetMaxHalite();
+            (_, int maxHalite) = game.Map.GetMinMaxHalite();
 
             _cells = new CostCell[Height][];
 
@@ -48,7 +48,7 @@ namespace Halite3.Hlt
                     }
                     else
                     {
-                        int norm = mapCell.Halite * 253 / maxHalite; // 0-253
+                        int norm = (int)(mapCell.Halite * 253.0 / maxHalite); // 0-253
 
                         mine = 254 - norm;
                         home = 1 + norm;
