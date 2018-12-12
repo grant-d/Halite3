@@ -7,7 +7,7 @@ namespace Halite3.Hlt
 
     public sealed class IntegrationField
     {
-        private readonly IntegrationCell[][] _cells;
+        private readonly IntegrationCell[] _cells;
 
         public int Width { get; }
         public int Height { get; }
@@ -18,14 +18,14 @@ namespace Halite3.Hlt
         {
             get
             {
-                Position normalized = Normalize(position);
-                return _cells[normalized.Y][normalized.X];
+                int index = Normalize(position);
+                return _cells[index];
             }
 
             private set
             {
-                Position normalized = Normalize(position);
-                _cells[normalized.Y][normalized.X] = value;
+                int index = Normalize(position);
+                _cells[index] = value;
             }
         }
 
@@ -37,15 +37,13 @@ namespace Halite3.Hlt
             Width = costField.Width;
             Height = costField.Height;
 
-            _cells = new IntegrationCell[Height][];
+            _cells = new IntegrationCell[Height * Width];
             for (int y = 0; y < Height; y++)
             {
-                _cells[y] = new IntegrationCell[Width];
-
                 for (int x = 0; x < Width; x++)
                 {
                     // 1 - The algorithm starts by resetting the value of all cells to a large value (65535).
-                    _cells[y][x] = IntegrationCell.Max;
+                    _cells[y * Width + x] = IntegrationCell.Max;
                 }
             }
 
@@ -75,9 +73,9 @@ namespace Halite3.Hlt
                 var neighbors = new Position[4]
                 {
                     new Position(currentPos.X, currentPos.Y - 1), // N
+                    new Position(currentPos.X - 1, currentPos.Y), // W
                     new Position(currentPos.X + 1, currentPos.Y), // E
                     new Position(currentPos.X, currentPos.Y + 1), // S
-                    new Position(currentPos.X - 1, currentPos.Y), // W
                 };
 
                 for (int i = 0; i < neighbors.Length; i++)
@@ -106,11 +104,12 @@ namespace Halite3.Hlt
             }
         }
 
-        private Position Normalize(Position position)
+        private int Normalize(Position position)
         {
             int x = ((position.X % Width) + Width) % Width;
             int y = ((position.Y % Height) + Height) % Height;
-            return new Position(x, y);
+
+            return y * Width + x;
         }
     }
 }

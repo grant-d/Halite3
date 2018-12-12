@@ -1,11 +1,27 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 
 namespace Halite3.Hlt
 {
     public static class FlowDirectionExtensions
     {
-        public static Position ToPosition(this FlowDirection direction, Position start)
+        public static FlowDirection Invert(this FlowDirection direction)
+        {
+            Debug.Assert(Enum.IsDefined(typeof(FlowDirection), direction));
+
+            switch (direction)
+            {
+                case FlowDirection.N: return FlowDirection.S;
+                case FlowDirection.E: return FlowDirection.W;
+                case FlowDirection.S: return FlowDirection.N;
+                case FlowDirection.W: return FlowDirection.E;
+
+                default:
+                case FlowDirection._: return direction;
+            }
+        }
+
+        public static Position FromPosition(this FlowDirection direction, Position start)
         {
             Debug.Assert(Enum.IsDefined(typeof(FlowDirection), direction));
 

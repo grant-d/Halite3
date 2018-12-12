@@ -6,7 +6,7 @@ namespace Halite3.Hlt
 
     public sealed class CostField
     {
-        private readonly CostCell[][] _cells;
+        private readonly CostCell[] _cells;
 
         public int Width { get; }
         public int Height { get; }
@@ -17,14 +17,14 @@ namespace Halite3.Hlt
         {
             get
             {
-                Position normalized = Normalize(position);
-                return _cells[normalized.Y][normalized.X];
+                int index = Normalize(position);
+                return _cells[index];
             }
 
             private set
             {
-                Position normalized = Normalize(position);
-                _cells[normalized.Y][normalized.X] = value;
+                int index = Normalize(position);
+                _cells[index] = value;
             }
         }
 
@@ -37,12 +37,10 @@ namespace Halite3.Hlt
 
             (_, int maxHalite) = game.Map.GetMinMaxHalite();
 
-            _cells = new CostCell[Height][];
+            _cells = new CostCell[Height * Width];
 
             for (int y = 0; y < Height; y++)
             {
-                _cells[y] = new CostCell[Width];
-
                 for (int x = 0; x < Width; x++)
                 {
                     CostCell cost = default;
@@ -66,16 +64,17 @@ namespace Halite3.Hlt
                         cost = new CostCell((byte)norm);
                     }
 
-                    _cells[y][x] = cost;
+                    _cells[y * Width + x] = cost;
                 }
             }
         }
 
-        private Position Normalize(Position position)
+        private int Normalize(Position position)
         {
             int x = ((position.X % Width) + Width) % Width;
             int y = ((position.Y % Height) + Height) % Height;
-            return new Position(x, y);
+
+            return y * Width + x;
         }
     }
 }

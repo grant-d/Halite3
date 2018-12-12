@@ -20,6 +20,8 @@ namespace Halite3
             {
                 Log.LogMessage(game.Map.GetMinMaxHalite().ToString());
 
+                int maxShips = 20;
+
                 // At this point "game" variable is populated with initial map data.
                 // This is a good place to do computationally expensive start-up pre-processing.
                 // As soon as you call "ready" function below, the 2 second per turn timer will start.
@@ -30,21 +32,34 @@ namespace Halite3
                 {
                     game.UpdateFrame();
 
+                    var richMine = game.Map.GetRichestLocalSquare(game.Me.Shipyard.Position, 4);
                     var costMine = new CostField(game, new CostCell(254), CostCell.Wall);
-                    var intgMine = new IntegrationField(costMine, new Position(6, 6));
+                    var intgMine = new IntegrationField(costMine, richMine.Position);
                     var flowMine = new FlowField(intgMine);
-                    LogFields(game, "MINE", costMine, intgMine, flowMine);
+                    //LogFields(game, "MINE", costMine, intgMine, flowMine);
 
                     var costHome = new CostField(game, new CostCell(1), new CostCell(254));
                     var intgHome = new IntegrationField(costHome, game.Me.Shipyard.Position);
                     var flowHome = new FlowField(intgHome);
-                    LogFields(game, "HOME", costHome, intgHome, flowHome);
+                    //LogFields(game, "HOME", costHome, intgHome, flowHome);
 
                     var commandQueue = new List<Command>();
 
-                    if (game.Me.Ships.Count == 0)
+                    if (game.Me.Ships.Count < maxShips
+                        && game.Me.Halite > Constants.ShipCost)
                     {
-                        commandQueue.Add(Command.SpawnShip());
+                        MapCell mapCell = game.Map[game.Me.Shipyard];
+                        if (mapCell.IsOccupied)
+                        {
+                            if (mapCell.Ship.Owner != game.MyId)
+                            {
+                                commandQueue.Add(Command.SpawnShip());
+                            }
+                        }
+                        else
+                        {
+                            commandQueue.Add(Command.SpawnShip());
+                        }
                     }
 
                     foreach (Ship ship in game.Me.Ships.Values)
@@ -53,15 +68,23 @@ namespace Halite3
                         {
                             FlowCell flow = flowHome[ship.Position];
                             FlowDirection flowDir = flow.Direction;
-                            Direction dir = game.Map.NaiveNavigate(ship, flowDir.ToPosition(ship.Position));
+                            Direction dir = game.Map.NaiveNavigate(ship, flowDir.FromPosition(ship.Position));
                             commandQueue.Add(Command.Move(ship.Id, dir));
                         }
                         else
                         {
-                            FlowCell flow = flowMine[ship.Position];
-                            FlowDirection flowDir = flow.Direction;
-                            Direction dir = game.Map.NaiveNavigate(ship, flowDir.ToPosition(ship.Position));
-                            commandQueue.Add(Command.Move(ship.Id, dir));
+                            if (IsWorthMining(game.Map[ship.Position].Halite))
+                            {
+                                commandQueue.Add(ship.Stay());
+                            }
+                            else
+                            {
+                                FlowCell flow = flowMine[ship.Position];
+                                FlowDirection flowDir = flow.Direction;
+                                flowDir = flowDir.Invert();
+                                Direction dir = game.Map.NaiveNavigate(ship, flowDir.FromPosition(ship.Position));
+                                commandQueue.Add(Command.Move(ship.Id, dir));
+                            }
                         }
                     }
 
@@ -69,6 +92,9 @@ namespace Halite3
                 }
             }
         }
+
+        private static bool IsWorthMining(int halite)
+            => halite / Constants.ExtractRatio > halite / Constants.MoveCostRatio;
 
         private static void LogFields(Game game, string title, CostField costField, IntegrationField intgField, FlowField flowField)
         {

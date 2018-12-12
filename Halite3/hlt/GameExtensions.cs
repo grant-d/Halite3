@@ -120,10 +120,10 @@ namespace Halite3.Hlt
         {
             Debug.Assert(game != null);
 
-            if (!game.Map.At(game.Me.Shipyard).IsOccupied)
+            if (!game.Map[game.Me.Shipyard].IsOccupied)
                 return false;
 
-            if (game.Map.At(game.Me.Shipyard).Ship.Owner == game.MyId)
+            if (game.Map[game.Me.Shipyard].Ship.Owner == game.MyId)
                 return false;
 
             return true;

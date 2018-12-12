@@ -36,6 +36,14 @@ namespace Halite3.Hlt
         }
 
         /// <summary>
+        /// Normalizes the position of an Entity and returns the corresponding MapCell.
+        /// </summary>
+#pragma warning disable CA1043 // Use Integral Or String Argument For Indexers
+        public MapCell this[Entity entity]
+#pragma warning restore CA1043 // Use Integral Or String Argument For Indexers
+            => this[entity.Position];
+
+        /// <summary>
         /// Creates a new instance of a GameMap
         /// </summary>
         /// <para><seealso cref="_generate"/></para>
@@ -52,21 +60,6 @@ namespace Halite3.Hlt
                 _cells[y] = new MapCell[width];
             }
         }
-
-        /// <summary>
-        /// Normalizes the given Position and then returns the corresponding MapCell.
-        /// </summary>
-        //public MapCell At(Position position)
-        //{
-        //    Position normalized = Normalize(position);
-        //    return _cells[normalized.Y][normalized.X];
-        //}
-
-        /// <summary>
-        /// Normalizes the position of an Entity and returns the corresponding MapCell.
-        /// </summary>
-        public MapCell At(Entity entity)
-            => this[entity.Position];
 
         /// <summary>
         /// A method that computes the Manhattan distance between two locations, and accounts for the toroidal wraparound.

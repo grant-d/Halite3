@@ -77,14 +77,14 @@ namespace Halite3.Hlt
             {
                 foreach (Ship ship in player.Ships.Values)
                 {
-                    Map.At(ship).MarkUnsafe(ship);
+                    Map[ship].MarkUnsafe(ship);
                 }
 
-                Map.At(player.Shipyard).Structure = player.Shipyard;
+                Map[player.Shipyard].Structure = player.Shipyard;
 
                 foreach (Dropoff dropoff in player.Dropoffs.Values)
                 {
-                    Map.At(dropoff).Structure = dropoff;
+                    Map[dropoff].Structure = dropoff;
                 }
             }
         }

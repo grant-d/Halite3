@@ -7,7 +7,7 @@ namespace Halite3.Hlt
 
     public sealed class FlowField
     {
-        private readonly FlowCell[][] _cells;
+        private readonly FlowCell[] _cells;
 
         public int Width { get; }
         public int Height { get; }
@@ -18,14 +18,14 @@ namespace Halite3.Hlt
         {
             get
             {
-                Position normalized = Normalize(position);
-                return _cells[normalized.Y][normalized.X];
+                int index = Normalize(position);
+                return _cells[index];
             }
 
             private set
             {
-                Position normalized = Normalize(position);
-                _cells[normalized.Y][normalized.X] = value;
+                int index = Normalize(position);
+                _cells[index] = value;
             }
         }
 
@@ -36,12 +36,10 @@ namespace Halite3.Hlt
             Width = integrationField.Width;
             Height = integrationField.Height;
 
-            _cells = new FlowCell[Height][];
+            _cells = new FlowCell[Height * Width];
 
             for (int y = 0; y < Height; y++)
             {
-                _cells[y] = new FlowCell[Width];
-
                 for (int x = 0; x < Width; x++)
                 {
                     var current = new Position(x, y);
@@ -54,7 +52,7 @@ namespace Halite3.Hlt
                         if (dir == FlowDirection._)
                             continue;
 
-                        var pos = dir.ToPosition(current);
+                        var pos = dir.FromPosition(current);
 
                         ushort cost = integrationField[pos].Cost;
                         if (cost < best)
@@ -64,16 +62,17 @@ namespace Halite3.Hlt
                         }
                     }
 
-                    _cells[y][x] = new FlowCell(direction);
+                    _cells[y * Width + x] = new FlowCell(direction);
                 }
             }
         }
 
-        private Position Normalize(Position position)
+        private int Normalize(Position position)
         {
             int x = ((position.X % Width) + Width) % Width;
             int y = ((position.Y % Height) + Height) % Height;
-            return new Position(x, y);
+
+            return y * Width + x;
         }
     }
 }
