@@ -10,16 +10,17 @@ namespace Halite3.Hlt
     /// <see cref="https://halite.io/learn-programming-challenge/api-docs#direction"/>
     public enum Direction
     {
+        Still = 'o',
+
         North = 'n',
         East = 'e',
         South = 's',
         West = 'w',
-        Still = 'o'
     }
 
     public static class DirectionExtensions
     {
-        public static IReadOnlyList<Direction> AllCardinals { get; } = new Direction[]{ Direction.North, Direction.South, Direction.East, Direction.West };
+        public static IReadOnlyList<Direction> AllCardinals { get; } = new Direction[] { Direction.North, Direction.South, Direction.East, Direction.West };
 
         /// <summary>
         /// Returns the opposite of this direction. The opposite of STILL is STILL.

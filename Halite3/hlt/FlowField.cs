@@ -52,7 +52,7 @@ namespace Halite3.Hlt
                         if (dir == FlowDirection._)
                             continue;
 
-                        var pos = dir.FromPosition(current);
+                        Position pos = dir.FromPosition(current);
 
                         ushort cost = integrationField[pos].Cost;
                         if (cost < best)

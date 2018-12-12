@@ -6,6 +6,10 @@ namespace Halite3.Hlt
 
     public readonly struct CostCell : IEquatable<CostCell>
     {
+        public static readonly CostCell Zero = new CostCell(0);
+
+        public static readonly CostCell Max = new CostCell(254);
+
         public static readonly CostCell Wall = new CostCell(byte.MaxValue);
 
         public byte Cost { get; }
