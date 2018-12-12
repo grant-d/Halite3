@@ -48,10 +48,10 @@ namespace Halite3.Hlt
                     }
                     else
                     {
-                        int norm = (int)(mapCell.Halite * 253.0 / maxHalite); // 0-253
+                        double norm = mapCell.Halite * 253.0 / maxHalite; // 0-253
 
-                        mine = 254 - norm;
-                        home = 1 + norm;
+                        mine = (int)(254 - norm);
+                        home = (int)(1 + norm);
                     }
 
                     _cells[y][x] = new CostCell((byte)mine, (byte)home);

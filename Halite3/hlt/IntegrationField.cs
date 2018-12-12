@@ -75,7 +75,7 @@ namespace Halite3.Hlt
 
                     // 4 - All of the current node’s neighbors get their total cost set to the current node’s cost
                     // plus their cost read from the cost field,
-                    ushort cost = (ushort)(costField.At(currentPos).Mine + neighborCost);
+                    ushort cost = (ushort)(At(currentPos).Mine + neighborCost);
 
                     // 4 - This happens if and only if the new calculated cost is lower than the old cost.
                     if (cost < At(neighbor).Mine)
@@ -117,8 +117,8 @@ namespace Halite3.Hlt
                     Position neighbor = neighbors[i];
 
                     byte neighborCost = costField.At(neighbor).Home;
-                    if (neighborCost == CostCell.Wall)
-                        continue;
+                    //if (neighborCost == CostCell.Wall)
+                    //    continue;
 
                     ushort cost = (ushort)(costField.At(currentPos).Home + neighborCost);
 

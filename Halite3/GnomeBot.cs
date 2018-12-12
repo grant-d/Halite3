@@ -26,6 +26,21 @@ namespace Halite3
 
                 var sb = new StringBuilder();
 
+                Log.LogMessage("MAP FIELD");
+                for (var y = 0; y < flowField.Height; y++)
+                {
+                    sb.Clear();
+                    for (var x = 0; x < flowField.Width; x++)
+                    {
+                        var pos = new Position(x, y);
+                        if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
+                            sb.Append((game.Map.At(pos).Halite.ToString() + "**").PadRight(6));
+                        else
+                            sb.Append((game.Map.At(pos).Halite.ToString() + " |").PadRight(6));
+                    }
+                    Log.LogMessage(sb.ToString());
+                }
+
                 Log.LogMessage("COST FIELD");
                 for (var y = 0; y < flowField.Height; y++)
                 {
@@ -33,12 +48,11 @@ namespace Halite3
                     for (var x = 0; x < flowField.Width; x++)
                     {
                         var pos = new Position(x, y);
-                        if (pos == game.Me.Shipyard.Position)
+                        if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
                             sb.Append((costField.At(pos).Home.ToString() + "**").PadRight(6));
                         else
                             sb.Append((costField.At(pos).Home.ToString() + " |").PadRight(6));
                     }
-                    sb.AppendLine();
                     Log.LogMessage(sb.ToString());
                 }
 
@@ -49,12 +63,11 @@ namespace Halite3
                     for (var x = 0; x < flowField.Width; x++)
                     {
                         var pos = new Position(x, y);
-                        if (pos == game.Me.Shipyard.Position)
+                        if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
                             sb.Append((intgField.At(pos).Home.ToString() + "**").PadRight(6));
                         else
                             sb.Append((intgField.At(pos).Home.ToString() + " |").PadRight(6));
                     }
-                    sb.AppendLine();
                     Log.LogMessage(sb.ToString());
                 }
 
@@ -65,12 +78,11 @@ namespace Halite3
                     for (var x = 0; x < flowField.Width; x++)
                     {
                         var pos = new Position(x, y);
-                        if (pos == game.Me.Shipyard.Position)
+                        if (pos == game.Me.Shipyard.Position || new Position(game.Map.Width - pos.X - 1, pos.Y) == game.Me.Shipyard.Position)
                             sb.Append((flowField.At(pos).Home.ToSymbol() + "**").PadRight(6));
                         else
                             sb.Append((flowField.At(pos).Home.ToSymbol() + "  ").PadRight(6));
                     }
-                    sb.AppendLine();
                     Log.LogMessage(sb.ToString());
                 }
 

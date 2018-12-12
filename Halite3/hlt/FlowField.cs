@@ -37,6 +37,9 @@ namespace Halite3.Hlt
 
                     foreach (FlowDirection dir in Enum.GetValues(typeof(FlowDirection)))
                     {
+                        if (dir == FlowDirection._)
+                            continue;
+
                         var pos = dir.ToPosition(current);
 
                         ushort mine = integrationField.At(pos).Mine;
