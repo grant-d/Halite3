@@ -3,17 +3,15 @@ using System.Diagnostics;
 
 namespace Halite3.Hlt
 {
-    // https://leifnode.com/2013/12/flow-field-pathfinding/
-
-    public sealed class IntegrationField
+    public sealed class WaveField
     {
-        private readonly IntegrationCell[] _cells;
+        private readonly WaveCell[] _cells;
 
         public int Width { get; }
         public int Height { get; }
 
 #pragma warning disable CA1043 // Use Integral Or String Argument For Indexers
-        public IntegrationCell this[Position position]
+        public WaveCell this[Position position]
 #pragma warning restore CA1043 // Use Integral Or String Argument For Indexers
         {
             get
@@ -29,7 +27,7 @@ namespace Halite3.Hlt
             }
         }
 
-        public IntegrationField(CostField costField, Position root)
+        public WaveField(CostField costField, Position root)
         {
             Debug.Assert(costField != null);
             Debug.Assert(root != null);
@@ -37,13 +35,13 @@ namespace Halite3.Hlt
             Width = costField.Width;
             Height = costField.Height;
 
-            _cells = new IntegrationCell[Height * Width];
+            _cells = new WaveCell[Height * Width];
             for (int y = 0; y < Height; y++)
             {
                 for (int x = 0; x < Width; x++)
                 {
                     // 1 - The algorithm starts by resetting the value of all cells to a large value (65535).
-                    _cells[y * Width + x] = IntegrationCell.Max;
+                    _cells[y * Width + x] = WaveCell.Max;
                 }
             }
 
@@ -56,7 +54,7 @@ namespace Halite3.Hlt
             Debug.Assert(goal != null);
 
             // 2 - The goal node then gets its total path cost set to zero.
-            this[goal] = IntegrationCell.Zero;
+            this[goal] = WaveCell.Zero;
 
             // 2 - And gets added to the open list.
             // From this point the goal node is treated like a normal node.
@@ -94,7 +92,7 @@ namespace Halite3.Hlt
                     // 4 - This happens if and only if the new calculated cost is lower than the old cost.
                     if (cost < this[neighbor].Cost)
                     {
-                        this[neighbor] = new IntegrationCell(cost);
+                        this[neighbor] = new WaveCell(cost);
 
                         // 4 - Then they get added to the back of the open list.
                         if (!openList.Contains(neighbor))

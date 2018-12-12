@@ -56,47 +56,59 @@ namespace Halite3.Hlt
             Debug.Assert(radius >= 0 && radius <= map.Width && radius <= map.Height);
 
             if (radius == 0)
-                return (position, Sum(position));
+                return (position, Sum(position).Sum);
 
             // North
             var north = new Position(position.X, position.Y - radius);
-            int n = Sum(north);
-            int halite = n;
-            Position mine = north;
+            var n = Sum(north);
+            int halite = n.Sum;
+            Position mine = n.Position;
 
             // East
             var east = new Position(position.X + radius, position.Y);
-            int e = Sum(east);
-            if (e > halite) { mine = east; halite = e; }
+            var e = Sum(east);
+            if (e.Sum > halite) { mine = e.Position; halite = e.Sum; }
 
             // South
             var south = new Position(position.X, position.Y + radius);
-            int s = Sum(south);
-            if (s > halite) { mine = south; halite = s; }
+            var s = Sum(south);
+            if (s.Sum > halite) { mine = s.Position; halite = s.Sum; }
 
             // West
             var west = new Position(position.X - radius, position.Y);
-            int w = Sum(west);
-            if (w > halite) { mine = west; halite = w; }
+            var w = Sum(west);
+            if (w.Sum > halite) { mine = w.Position; halite = w.Sum; }
 
             return (mine, halite);
 
-            int Sum(Position pos)
+            (int Sum, Position Position) Sum(Position center)
             {
-                int sum = map[pos].Halite;
+                int sum = map[center].Halite;
 
                 if (radius == 0)
-                    return sum;
+                    return (sum, center);
 
-                for (int x = pos.X - radius; x <= pos.X + radius; x++)
+                int bestHal = 0;
+                Position bestPol = center;
+
+                for (int x = center.X - radius; x <= center.X + radius; x++)
                 {
-                    for (int y = pos.Y - radius; y <= pos.Y + radius; y++)
+                    for (int y = center.Y - radius; y <= center.Y + radius; y++)
                     {
-                        sum += map[new Position(x, y)].Halite;
+                        var pos = new Position(x, y);
+
+                        int hal = map[pos].Halite;
+                        if (hal > bestHal)
+                        {
+                            bestHal = hal;
+                            bestPol = pos;
+                        }
+
+                        sum += hal;
                     }
                 }
 
-                return sum;
+                return (sum, bestPol);
             }
         }
 

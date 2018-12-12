@@ -2,8 +2,6 @@ using System.Diagnostics;
 
 namespace Halite3.Hlt
 {
-    // https://leifnode.com/2013/12/flow-field-pathfinding/
-
     public sealed class CostField
     {
         private readonly CostCell[] _cells;
@@ -60,7 +58,7 @@ namespace Halite3.Hlt
                     }
                     else
                     {
-                        double norm = mapCell.Halite * 254.0 / maxHalite; // 0-254
+                        double norm = 1 + mapCell.Halite * 253.0 / maxHalite; // 1-254
                         cost = new CostCell((byte)norm);
                     }
 

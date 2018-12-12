@@ -4,7 +4,8 @@ using System.Diagnostics;
 namespace Halite3.Hlt
 {
     // https://leifnode.com/2013/12/flow-field-pathfinding/
-
+    // https://gamedevelopment.tutsplus.com/tutorials/understanding-goal-based-vector-field-pathfinding--gamedev-9007
+    // http://www.gameaipro.com/GameAIPro/GameAIPro_Chapter23_Crowd_Pathfinding_and_Steering_Using_Flow_Field_Tiles.pdf
     public sealed class FlowField
     {
         private readonly FlowCell[] _cells;
@@ -29,12 +30,12 @@ namespace Halite3.Hlt
             }
         }
 
-        public FlowField(IntegrationField integrationField)
+        public FlowField(WaveField waveField)
         {
-            Debug.Assert(integrationField != null);
+            Debug.Assert(waveField != null);
 
-            Width = integrationField.Width;
-            Height = integrationField.Height;
+            Width = waveField.Width;
+            Height = waveField.Height;
 
             _cells = new FlowCell[Height * Width];
 
@@ -44,7 +45,7 @@ namespace Halite3.Hlt
                 {
                     var current = new Position(x, y);
 
-                    ushort best = IntegrationCell.Max.Cost;
+                    ushort best = WaveCell.Max.Cost;
                     FlowDirection direction = FlowDirection._;
 
                     foreach (FlowDirection dir in Enum.GetValues(typeof(FlowDirection)))
@@ -54,7 +55,7 @@ namespace Halite3.Hlt
 
                         Position pos = dir.FromPosition(current);
 
-                        ushort cost = integrationField[pos].Cost;
+                        ushort cost = waveField[pos].Cost;
                         if (cost < best)
                         {
                             best = cost;

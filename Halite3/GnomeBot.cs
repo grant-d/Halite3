@@ -1,7 +1,6 @@
 using Halite3.Hlt;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 
@@ -39,16 +38,16 @@ namespace Halite3
                     game.UpdateFrame();
                     int turnsRemaining = Constants.MaxTurns - game.TurnNumber;
 
-                    (Position richMine, _) = game.Map.GetRichestLocalRadius(game.Me.Shipyard.Position, game.Map.Width / 4);
-                    var costMine = new CostField(game, CostCell.Max, CostCell.Wall);
-                    var intgMine = new IntegrationField(costMine, richMine);
-                    var flowMine = new FlowField(intgMine);
+                    //(Position richMine, _) = game.Map.GetRichestLocalSquare(game.Me.Shipyard.Position, game.Map.Width / 2);
+                    //var costMine = new CostField(game, CostCell.Max, CostCell.Wall);
+                    //var waveMine = new IntegrationField(costMine, richMine);
+                    //var flowMine = new FlowField(waveMine);
                     //LogFields(game, "MINE", costMine, intgMine, flowMine);
 
                     var costHome = new CostField(game, CostCell.Zero, CostCell.Max);
-                    var intgHome = new IntegrationField(costHome, game.Me.Shipyard.Position);
-                    var flowHome = new FlowField(intgHome);
-                    //LogFields(game, "HOME", costHome, intgHome, flowHome);
+                    var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
+                    var flowHome = new FlowField(waveHome);
+                    //LogFields(game, "HOME", costHome, waveHome, flowHome);
 
                     var commandQueue = new List<Command>();
 
@@ -118,6 +117,11 @@ namespace Halite3
                                         requests[ship.Id] = new ShipRequest(ShipState.Mining, ship.Position);
                                         break;
                                     }
+
+                                    (Position richMine, _) = game.Map.GetRichestLocalSquare(ship.Position, game.Map.Width / 4);
+                                    var costMine = new CostField(game, CostCell.Max, CostCell.Wall);
+                                    var waveMine = new WaveField(costMine, richMine);
+                                    var flowMine = new FlowField(waveMine);
 
                                     // Else follow the flowfield out
                                     FlowCell flow = flowMine[ship.Position];
@@ -265,7 +269,7 @@ namespace Halite3
         private static bool IsWorthMining(int halite)
             => halite / Constants.ExtractRatio > halite / Constants.MoveCostRatio;
 
-        private static void LogFields(Game game, string title, CostField costField, IntegrationField intgField, FlowField flowField)
+        private static void LogFields(Game game, string title, CostField costField, WaveField intgField, FlowField flowField)
         {
             var sb = new StringBuilder();
 

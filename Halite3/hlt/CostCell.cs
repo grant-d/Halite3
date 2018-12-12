@@ -2,8 +2,6 @@ using System;
 
 namespace Halite3.Hlt
 {
-    // https://leifnode.com/2013/12/flow-field-pathfinding/
-
     public readonly struct CostCell : IEquatable<CostCell>
     {
         public static readonly CostCell Zero = new CostCell(0);
