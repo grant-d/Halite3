@@ -41,7 +41,7 @@ namespace Halite3.Hlt
             {
                 for (int x = 0; x < Width; x++)
                 {
-                    CostCell cost = CostCell.Zero;
+                    CostCell cost = CostCell.Min; // 1
 
                     MapCell mapCell = game.Map[new Position(x, y)];
 

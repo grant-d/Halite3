@@ -4,7 +4,9 @@ namespace Halite3.Hlt
 {
     public readonly struct CostCell : IEquatable<CostCell>
     {
-        public static readonly CostCell Zero = new CostCell(0);
+        // Zero is used for the goal only
+
+        public static readonly CostCell Min = new CostCell(1);
 
         public static readonly CostCell Max = new CostCell(254);
 

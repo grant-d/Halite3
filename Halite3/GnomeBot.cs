@@ -38,16 +38,16 @@ namespace Halite3
                     game.UpdateFrame();
                     int turnsRemaining = Constants.MaxTurns - game.TurnNumber;
 
-                    //(Position richMine, _) = game.Map.GetRichestLocalSquare(game.Me.Shipyard.Position, game.Map.Width / 2);
-                    //var costMine = new CostField(game, CostCell.Max, CostCell.Wall);
-                    //var waveMine = new IntegrationField(costMine, richMine);
-                    //var flowMine = new FlowField(waveMine);
-                    //LogFields(game, "MINE", costMine, intgMine, flowMine);
+                    (Position richMine, _) = game.Map.GetRichestLocalSquare(game.Me.Shipyard.Position, game.Map.Width / 4);
+                    var costMine = new CostField(game, CostCell.Max, CostCell.Wall);
+                    var waveMine = new WaveField(costMine, richMine);
+                    var flowMine = new FlowField(waveMine);
+                    LogFields(game, "MINE", costMine, waveMine, flowMine);
 
-                    var costHome = new CostField(game, CostCell.Zero, CostCell.Max);
+                    var costHome = new CostField(game, CostCell.Min, CostCell.Max);
                     var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
                     var flowHome = new FlowField(waveHome);
-                    //LogFields(game, "HOME", costHome, waveHome, flowHome);
+                    LogFields(game, "HOME", costHome, waveHome, flowHome);
 
                     var commandQueue = new List<Command>();
 
@@ -69,6 +69,11 @@ namespace Halite3
                         {
                             case ShipState.Mining:
                                 {
+                                    // Else follow the flowfield out
+                                    FlowCell flow = flowMine[ship.Position];
+                                    FlowDirection flowDir = flow.Direction;
+                                    Position flowTarget = flowDir.FromPosition(ship.Position);
+
                                     // If ship is full, go back to base
                                     if (ship.IsFull)
                                     {
@@ -78,27 +83,31 @@ namespace Halite3
                                     // If ship is on a drop
                                     if (game.IsOnDrop(ship.Position))
                                     {
-                                        // Move in the direction with the maximum halite
-                                        int halite = 0;
-                                        Position target = ship.Position;
-                                        foreach (Direction dir1 in DirectionExtensions.AllCardinals)
-                                        {
-                                            if (game.Map[ship.Position.DirectionalOffset(dir1)].Halite > halite)
-                                            {
-                                                halite = game.Map[ship.Position.DirectionalOffset(dir1)].Halite;
-                                                target = ship.Position.DirectionalOffset(dir1);
-                                            }
-                                        }
+                                        Position target = flowTarget;
 
-                                        // If no halite available, move in any empty direction
-                                        if (target == ship.Position)
+                                        if (!game.Map[flowTarget].IsEmpty)
                                         {
+                                            // Move in the direction with the maximum halite
+                                            int halite = 0;
                                             foreach (Direction dir1 in DirectionExtensions.AllCardinals)
                                             {
-                                                if (game.Map[ship.Position.DirectionalOffset(dir1)].IsEmpty)
+                                                if (game.Map[ship.Position.DirectionalOffset(dir1)].Halite > halite)
                                                 {
+                                                    halite = game.Map[ship.Position.DirectionalOffset(dir1)].Halite;
                                                     target = ship.Position.DirectionalOffset(dir1);
-                                                    break;
+                                                }
+                                            }
+
+                                            // If no halite available, move in any empty direction
+                                            if (target == ship.Position)
+                                            {
+                                                foreach (Direction dir1 in DirectionExtensions.AllCardinals)
+                                                {
+                                                    if (game.Map[ship.Position.DirectionalOffset(dir1)].IsEmpty)
+                                                    {
+                                                        target = ship.Position.DirectionalOffset(dir1);
+                                                        break;
+                                                    }
                                                 }
                                             }
                                         }
@@ -118,21 +127,15 @@ namespace Halite3
                                         break;
                                     }
 
-                                    (Position richMine, _) = game.Map.GetRichestLocalSquare(ship.Position, game.Map.Width / 4);
-                                    var costMine = new CostField(game, CostCell.Max, CostCell.Wall);
-                                    var waveMine = new WaveField(costMine, richMine);
-                                    var flowMine = new FlowField(waveMine);
-
                                     // Else follow the flowfield out
-                                    FlowCell flow = flowMine[ship.Position];
-                                    FlowDirection flowDir = flow.Direction;
+                                    //FlowCell flow = flowMine[ship.Position];
+                                    //FlowDirection flowDir = flow.Direction;
 
                                     // Follow the most expensive route
-                                    flowDir = flowDir.Invert();
+                                    //flowDir = flowDir.Invert();
 
                                     // Queue the request
-                                    Position target1 = flowDir.FromPosition(ship.Position);
-                                    requests[ship.Id] = new ShipRequest(ShipState.Mining, target1);
+                                    requests[ship.Id] = new ShipRequest(ShipState.Mining, flowTarget);
                                 }
                                 break;
 
@@ -269,7 +272,7 @@ namespace Halite3
         private static bool IsWorthMining(int halite)
             => halite / Constants.ExtractRatio > halite / Constants.MoveCostRatio;
 
-        private static void LogFields(Game game, string title, CostField costField, WaveField intgField, FlowField flowField)
+        private static void LogFields(Game game, string title, CostField costField, WaveField waveField, FlowField flowField)
         {
             var sb = new StringBuilder();
 
@@ -303,17 +306,17 @@ namespace Halite3
                 Log.LogMessage(sb.ToString());
             }
 
-            Log.LogMessage("INTEGRATION FIELD " + title);
-            for (int y = 0; y < intgField.Height; y++)
+            Log.LogMessage("WAVE FIELD " + title);
+            for (int y = 0; y < waveField.Height; y++)
             {
                 sb.Clear();
-                for (int x = 0; x < intgField.Width; x++)
+                for (int x = 0; x < waveField.Width; x++)
                 {
                     var pos = new Position(x, y);
                     if (game.Map[pos].HasStructure)
-                        sb.Append((intgField[pos].Cost.ToString() + "**").PadRight(6));
+                        sb.Append((waveField[pos].Cost.ToString() + "**").PadRight(6));
                     else
-                        sb.Append((intgField[pos].Cost.ToString() + " |").PadRight(6));
+                        sb.Append((waveField[pos].Cost.ToString() + " |").PadRight(6));
                 }
                 Log.LogMessage(sb.ToString());
             }
