@@ -74,7 +74,7 @@ namespace Halite3.Hlt
 
             return new Position(X + dx, Y + dy);
         }
-        public override string ToString() => $"{X}, {Y}";
+        public override string ToString() => $"({X}, {Y})";
 
         public override bool Equals(object obj)
             => obj is Position other

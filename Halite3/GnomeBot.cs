@@ -29,9 +29,9 @@ namespace Halite3
                 (int minHalite, int maxHalite, int totalHalite, int meanHalite) = game.Map.GetHaliteStatistics();
                 Log.Message($"Min={minHalite}, Max={maxHalite}, Mean = {meanHalite}, Total={totalHalite}");
 
-                int maxShips = game.Map.Height * game.Map.Width; // 32->1024, 40->1600, 48->2304, 56->3136, 64->4096
-                maxShips = maxShips / 160; // 32->6, 40->10, 48->13, 56->19, 64->27
-                maxShips = maxShips + (12 * meanHalite * 2 / maxHalite); // 32->12, 40->16, 48->19, 56->25, 64->33
+                double maxShips1 = game.Map.Height * game.Map.Width; // 32->1024, 40->1600, 48->2304, 56->3136, 64->4096
+                maxShips1 = maxShips1 / 160; // 32->6, 40->10, 48->13, 56->19, 64->27
+                int maxShips = (int)(maxShips1 + (12 * meanHalite * 2 / maxHalite)); // 32->12, 40->16, 48->19, 56->25, 64->33
                 Log.Message($"Ships={maxShips}");
 
                 int maxDropOffs = -1 + game.Map.Width / 20; // 32->0, 40->1, 48->1, 64->2
@@ -51,7 +51,7 @@ namespace Halite3
                     {
                         (_, maxHalite, _, _) = game.Map.GetHaliteStatistics();
 
-                        var goalMine = game.Map.GetRichestLocalSquare(ship.Position, 3 + ship.Id.Id % 3);
+                        var goalMine = game.Map.GetRichestLocalSquare(ship.Position, game.Map.Width / 8 + ship.Id.Id % 3);
                         var costMine = new CostField(game, maxHalite, CostCell.Max, CostCell.Wall, true);
                         var waveMine = new WaveField(costMine, goalMine.Position);
                         var flowMine = new FlowField(waveMine);
@@ -209,7 +209,7 @@ namespace Halite3
                     foreach (KeyValuePair<EntityId, ShipRequest> kvp1 in requests)
                     {
                         Ship ship1 = game.Me.Ships[kvp1.Key.Id];
-                        Position pos1 = game.Map[ship1].Position;
+                        Position target1 = kvp1.Value.Target;
 
                         foreach (KeyValuePair<EntityId, ShipRequest> kvp2 in requests)
                         {
@@ -220,22 +220,64 @@ namespace Halite3
                                 continue;
 
                             Ship ship2 = game.Me.Ships[kvp2.Key.Id];
-                            Position pos2 = game.Map[ship2].Position;
+                            Position target2 = kvp2.Value.Target;
 
-                            if (kvp1.Value.Target == pos2
-                                && kvp2.Value.Target == pos1)
+                            // Swap needed
+                            if (target1 == ship2.Position
+                                && target2 == ship1.Position)
                             {
-                                game.Map[pos2].MarkSafe();
-                                Direction dir = game.Map.NaiveNavigate(ship1, pos2);
+                                game.Map[ship2.Position].MarkSafe();
+                                Direction dir = game.Map.NaiveNavigate(ship1, ship2.Position);
                                 commandQueue.Add(Command.Move(ship1.Id, dir));
                                 done[kvp1.Key] = true;
 
-                                game.Map[pos1].MarkSafe();
-                                dir = game.Map.NaiveNavigate(ship2, pos1);
+                                game.Map[ship1.Position].MarkSafe();
+                                dir = game.Map.NaiveNavigate(ship2, ship1.Position);
                                 commandQueue.Add(Command.Move(ship2.Id, dir));
                                 done[kvp2.Key] = true;
 
                                 Log.Message($"Swapped {ship1} and {ship2}");
+                                continue;
+                            }
+
+                            // Wiggle needed
+                            if (target2 == ship1.Position)
+                            {
+                                Position pos1, pos2;
+                                if (ship1.Position.Y != ship2.Position.Y)
+                                {
+                                    pos1 = ship2.Position.DirectionalOffset(Direction.West);
+                                    pos2 = ship2.Position.DirectionalOffset(Direction.East);
+                                }
+                                else
+                                {
+                                    pos1 = ship2.Position.DirectionalOffset(Direction.North);
+                                    pos2 = ship2.Position.DirectionalOffset(Direction.South);
+                                }
+
+                                Position target = target2;
+
+                                int best = 0;
+                                MapCell cell = game.Map[pos1];
+                                if (cell.IsEmpty)
+                                {
+                                    target = pos1;
+                                    best = cell.Halite;
+                                }
+
+                                cell = game.Map[pos2];
+                                if (cell.IsEmpty
+                                    && cell.Halite > best)
+                                    target = pos2;
+
+                                if (target != target2)
+                                {
+                                    Direction dir = game.Map.NaiveNavigate(ship2, target);
+                                    commandQueue.Add(Command.Move(ship2.Id, dir));
+                                    done[kvp2.Key] = true;
+
+                                    Log.Message($"Wiggled {ship2} from behind {ship1} to {target}");
+                                }
                             }
                         }
                     }
@@ -286,8 +328,8 @@ namespace Halite3
             }
         }
 
-        private static bool IsWorthMining(int halite)
-            => halite / Constants.ExtractRatio > halite / Constants.MoveCostRatio;
+        private static bool IsWorthMining(int halite, double factor = 1.0)
+            => halite / Constants.ExtractRatio >= factor * halite / Constants.MoveCostRatio;
 
         private static void LogFields(Map map, string title, CostField costField, WaveField waveField, FlowField flowField)
         {

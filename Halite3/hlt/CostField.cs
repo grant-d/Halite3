@@ -55,13 +55,15 @@ namespace Halite3.Hlt
                     }
                     else
                     {
+                        const int factor = byte.MaxValue - 2; // 253
+
                         // Normalize the amount of halite
-                        int halite = 1 + mapCell.Halite * 253 / maxHalite; // 1-254
+                        int halite = 1 + mapCell.Halite * factor / maxHalite; // 1..254
 
                         if (richIsCheap)
-                            halite = 255 - halite; // 254-1
+                            halite = byte.MaxValue - halite; // 254..1
 
-                        Debug.Assert(halite >= 1 && halite <= 254);
+                        Debug.Assert(halite > 0 && halite < byte.MaxValue); // 1..254
                         cost = new CostCell((byte)halite);
                     }
 
