@@ -27,6 +27,10 @@ namespace Halite3
                 {
                     game.UpdateFrame();
 
+                    var costField = new CostField(game);
+                    var intgField = new IntegrationField(costField);
+                    var flowField = new FlowField(intgField);
+
                     var commandQueue = new List<Command>();
 
                     foreach (Ship ship in game.Me.Ships.Values)
@@ -37,6 +41,5 @@ namespace Halite3
                 }
             }
         }
-
     }
 }
