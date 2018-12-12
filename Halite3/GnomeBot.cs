@@ -146,6 +146,12 @@ namespace Halite3
                                         requests[ship.Id] = new ShipRequest(ShipState.Mining, ship.Position);
                                         continue;
                                     }
+                                    // If mine is depleted, but ship is nearly full
+                                    else if (ship.Halite > 0.97 * Constants.MaxHalite)
+                                    {
+                                        Log.Message($"{ship} is full; returning");
+                                        goto case ShipState.Returning;
+                                    }
 
                                     // Queue the request
                                     Log.Message($"{ship} has target {target}");
