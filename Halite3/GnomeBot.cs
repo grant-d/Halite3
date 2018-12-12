@@ -26,7 +26,7 @@ namespace Halite3
                 int maxDropOffs = -1 + game.Map.Width / 20; // 32->0, 40->1, 48->1, 64->2
                 int minBuildTurn = Constants.MaxTurns * 5 / 10;
                 int maxBuildTurn = Constants.MaxTurns * 8 / 10;
-                var states = new Dictionary<EntityId, ShipStatus>();
+                var states = new Dictionary<EntityId, ShipState>(maxShips);
 
                 // At this point "game" variable is populated with initial map data.
                 // This is a good place to do computationally expensive start-up pre-processing.
@@ -37,155 +37,208 @@ namespace Halite3
                 while (true)
                 {
                     game.UpdateFrame();
+                    int turnsRemaining = Constants.MaxTurns - game.TurnNumber;
 
                     (Position richMine, _) = game.Map.GetRichestLocalRadius(game.Me.Shipyard.Position, game.Map.Width / 4);
                     var costMine = new CostField(game, CostCell.Max, CostCell.Wall);
                     var intgMine = new IntegrationField(costMine, richMine);
                     var flowMine = new FlowField(intgMine);
-                    LogFields(game, "MINE", costMine, intgMine, flowMine);
+                    //LogFields(game, "MINE", costMine, intgMine, flowMine);
 
                     var costHome = new CostField(game, CostCell.Zero, CostCell.Max);
                     var intgHome = new IntegrationField(costHome, game.Me.Shipyard.Position);
                     var flowHome = new FlowField(intgHome);
-                    LogFields(game, "HOME", costHome, intgHome, flowHome);
+                    //LogFields(game, "HOME", costHome, intgHome, flowHome);
 
                     var commandQueue = new List<Command>();
 
+                    var requests = new Dictionary<EntityId, ShipRequest>(game.Me.Ships.Count);
                     foreach (Ship ship in game.Me.Ships.Values)
                     {
-                        if (!states.TryGetValue(ship.Id, out ShipStatus status))
+                        if (!states.TryGetValue(ship.Id, out ShipState status))
                         {
-                            states.Add(ship.Id, status = new ShipStatus { State = ShipState.Mining });
+                            states.Add(ship.Id, status = ShipState.Mining);
                         }
 
                         (Position Position, int Distance) closestBase = game.GetClosestDrop(ship);
-                        var turnsRemaining = Constants.MaxTurns - game.TurnNumber;
-
                         if (turnsRemaining - game.Me.Ships.Count <= closestBase.Distance)
                         {
-                            states[ship.Id].State = ShipState.Ending;
+                            states[ship.Id] = ShipState.Ending;
                         }
 
-                        switch (status.State)
+                        switch (status)
                         {
                             case ShipState.Mining:
                                 {
+                                    // If ship is full, go back to base
                                     if (ship.IsFull)
                                     {
                                         goto case ShipState.Returning;
                                     }
 
+                                    // If ship is on a drop
                                     if (game.IsOnDrop(ship.Position))
                                     {
+                                        // Move in the direction with the maximum halite
                                         int halite = 0;
-                                        Position pos = ship.Position;
+                                        Position target = ship.Position;
                                         foreach (Direction dir1 in DirectionExtensions.AllCardinals)
                                         {
                                             if (game.Map[ship.Position.DirectionalOffset(dir1)].Halite > halite)
                                             {
                                                 halite = game.Map[ship.Position.DirectionalOffset(dir1)].Halite;
-                                                pos = ship.Position.DirectionalOffset(dir1);
+                                                target = ship.Position.DirectionalOffset(dir1);
                                             }
                                         }
 
-                                        if (pos == ship.Position)
+                                        // If no halite available, move in any empty direction
+                                        if (target == ship.Position)
                                         {
                                             foreach (Direction dir1 in DirectionExtensions.AllCardinals)
                                             {
                                                 if (game.Map[ship.Position.DirectionalOffset(dir1)].IsEmpty)
                                                 {
-                                                    pos = ship.Position.DirectionalOffset(dir1);
+                                                    target = ship.Position.DirectionalOffset(dir1);
                                                     break;
                                                 }
                                             }
                                         }
 
-                                        Direction dir2 = game.Map.NaiveNavigate(ship, pos);
-                                        commandQueue.Add(ship.Move(dir2));
-                                        continue;
+                                        // Queue the request
+                                        requests[ship.Id] = new ShipRequest(ShipState.Mining, target);
+                                        break;
                                     }
 
+                                    // If current mine is not depleted
                                     if (IsWorthMining(game.Map[ship.Position].Halite))
                                     {
-                                        states[ship.Id].State = ShipState.Mining;
-                                        commandQueue.Add(ship.Stay());
-                                        continue;
+                                        states[ship.Id] = ShipState.Mining;
+
+                                        // Stay in same mine
+                                        requests[ship.Id] = new ShipRequest(ShipState.Mining, ship.Position);
+                                        break;
                                     }
 
+                                    // Else follow the flowfield out
                                     FlowCell flow = flowMine[ship.Position];
                                     FlowDirection flowDir = flow.Direction;
+
+                                    // Follow the most expensive route
                                     flowDir = flowDir.Invert();
-                                    Position destination = flowDir.FromPosition(ship.Position);
 
-                                    // HACK
-                                    double dice = rng.NextDouble();
-                                    if (dice < 0.1)
-                                    {
-                                        destination = Jiggle(game, ship, rng);
-                                    }
-
-                                    Direction dir = game.Map.NaiveNavigate(ship, destination);
-                                    commandQueue.Add(Command.Move(ship.Id, dir));
+                                    // Queue the request
+                                    Position target1 = flowDir.FromPosition(ship.Position);
+                                    requests[ship.Id] = new ShipRequest(ShipState.Mining, target1);
                                 }
                                 break;
 
                             case ShipState.Returning:
                                 {
-                                    states[ship.Id].State = ShipState.Returning;
+                                    states[ship.Id] = ShipState.Returning;
 
+                                    // If ship is on the drop, go mine
                                     if (game.IsOnDrop(ship.Position))
                                     {
                                         goto case ShipState.Mining;
                                     }
 
+                                    // If ship is next to the drop
                                     if (game.IsNextToDrop(ship.Position, out Direction dir, out Position drop))
                                     {
-                                        MapCell cell = game.Map[drop];
-                                        if (cell.IsOccupied)
-                                        {
-                                            if (cell.Ship.Owner == game.MyId)
-                                            {
-                                                continue;
-                                            }
-
-                                            cell.MarkSafe();
-                                        }
-
-                                        dir = game.Map.NaiveNavigate(ship, drop);
-                                        commandQueue.Add(ship.Move(dir));
-                                        continue;
+                                        // Queue the request
+                                        requests[ship.Id] = new ShipRequest(ShipState.Returning, drop);
+                                        break;
                                     }
 
+                                    // Else follow the flowfield home
                                     FlowCell flow = flowHome[ship.Position];
                                     FlowDirection flowDir = flow.Direction;
-                                    Direction dir1 = game.Map.NaiveNavigate(ship, flowDir.FromPosition(ship.Position));
-                                    commandQueue.Add(Command.Move(ship.Id, dir1));
+
+                                    // Queue the request
+                                    Position target = flowDir.FromPosition(ship.Position);
+                                    requests[ship.Id] = new ShipRequest(ShipState.Returning, target);
                                 }
                                 break;
 
                             case ShipState.Ending:
                                 {
-                                    states[ship.Id].State = ShipState.Ending;
+                                    states[ship.Id] = ShipState.Ending;
 
+                                    // If ship is next to the drop
                                     if (game.IsNextToDrop(ship.Position, out Direction dir, out Position drop))
                                     {
-                                        MapCell cell = game.Map[drop];
-                                        cell.MarkSafe();
-
-                                        dir = game.Map.NaiveNavigate(ship, drop);
-                                        commandQueue.Add(ship.Move(dir));
-                                        continue;
+                                        // Queue the request
+                                        requests[ship.Id] = new ShipRequest(ShipState.Ending, drop);
+                                        break;
                                     }
 
+                                    // Else follow the flowfield home
                                     FlowCell flow = flowHome[ship.Position];
                                     FlowDirection flowDir = flow.Direction;
-                                    Direction dir1 = game.Map.NaiveNavigate(ship, flowDir.FromPosition(ship.Position));
-                                    commandQueue.Add(Command.Move(ship.Id, dir1));
+
+                                    // Queue the request
+                                    Position target = flowDir.FromPosition(ship.Position);
+                                    requests[ship.Id] = new ShipRequest(ShipState.Ending, target);
                                 }
                                 break;
                         }
                     }
 
+                    // Take care of swaps
+                    var done = new Dictionary<EntityId, bool>();
+                    foreach (KeyValuePair<EntityId, ShipRequest> kvp1 in requests)
+                    {
+                        done[kvp1.Key] = false;
+
+                        Ship ship1 = game.Me.Ships[kvp1.Key.Id];
+                        Position pos1 = game.Map[ship1].Position;
+
+                        foreach (KeyValuePair<EntityId, ShipRequest> kvp2 in requests)
+                        {
+                            if (kvp1.Key == kvp2.Key)
+                                continue;
+
+                            if (done.TryGetValue(kvp2.Key, out bool isDone) && isDone)
+                                continue;
+
+                            Ship ship2 = game.Me.Ships[kvp2.Key.Id];
+                            Position pos2 = game.Map[ship2].Position;
+
+                            if (kvp1.Value.Target == pos2 && kvp2.Value.Target == pos1)
+                            {
+                                game.Map[pos2].MarkSafe();
+                                Direction dir = game.Map.NaiveNavigate(ship1, pos2);
+                                commandQueue.Add(Command.Move(ship1.Id, dir));
+
+                                game.Map[pos1].MarkSafe();
+                                dir = game.Map.NaiveNavigate(ship2, pos1);
+                                commandQueue.Add(Command.Move(ship2.Id, dir));
+
+                                Log.LogMessage($"Swapped {ship1.Id.Id}({pos1}) and {ship2.Id.Id}({pos2})");
+
+                                done[kvp1.Key] = true;
+                                done[kvp2.Key] = true;
+                            }
+                        }
+                    }
+
+                    // Transfer remaining requests to command queue
+                    foreach (KeyValuePair<EntityId, ShipRequest> kvp1 in requests)
+                    {
+                        if (done.TryGetValue(kvp1.Key, out bool isDone) && isDone)
+                            continue;
+
+                        Ship ship1 = game.Me.Ships[kvp1.Key.Id];
+                        Position pos1 = game.Map[ship1].Position;
+
+                        Direction dir = game.Map.NaiveNavigate(ship1, kvp1.Value.Target);
+                        if (dir != Direction.Still)
+                        {
+                            commandQueue.Add(Command.Move(ship1.Id, dir));
+                        }
+                    }
+
+                    // Spawn new ships as necessary
                     if (game.TurnNumber <= maxBuildTurn
                         && game.Me.Ships.Count < maxShips
                         && game.Me.Halite > Constants.ShipCost * CostFactor)
@@ -212,36 +265,15 @@ namespace Halite3
         private static bool IsWorthMining(int halite)
             => halite / Constants.ExtractRatio > halite / Constants.MoveCostRatio;
 
-        private static Position Jiggle(Game game, Ship ship, Random rng)
-        {
-            var list = new List<Position>(5);
-            list.Add(ship.Position); // Stay
-
-            foreach (Direction direction in DirectionExtensions.AllCardinals)
-            {
-                Position pos = ship.Position.DirectionalOffset(direction);
-                if (game.Map[pos].IsEmpty)
-                {
-                    list.Add(pos);
-                }
-            }
-
-            if (list.Count == 1)
-                return list[0];
-
-            int i = rng.Next(0, list.Count);
-            return list[i];
-        }
-
         private static void LogFields(Game game, string title, CostField costField, IntegrationField intgField, FlowField flowField)
         {
             var sb = new StringBuilder();
 
             Log.LogMessage("MAP FIELD " + title);
-            for (var y = 0; y < game.Map.Height; y++)
+            for (int y = 0; y < game.Map.Height; y++)
             {
                 sb.Clear();
-                for (var x = 0; x < game.Map.Width; x++)
+                for (int x = 0; x < game.Map.Width; x++)
                 {
                     var pos = new Position(x, y);
                     if (game.Map[pos].HasStructure)
@@ -253,10 +285,10 @@ namespace Halite3
             }
 
             Log.LogMessage("COST FIELD " + title);
-            for (var y = 0; y < costField.Height; y++)
+            for (int y = 0; y < costField.Height; y++)
             {
                 sb.Clear();
-                for (var x = 0; x < costField.Width; x++)
+                for (int x = 0; x < costField.Width; x++)
                 {
                     var pos = new Position(x, y);
                     if (game.Map[pos].HasStructure)
@@ -268,10 +300,10 @@ namespace Halite3
             }
 
             Log.LogMessage("INTEGRATION FIELD " + title);
-            for (var y = 0; y < intgField.Height; y++)
+            for (int y = 0; y < intgField.Height; y++)
             {
                 sb.Clear();
-                for (var x = 0; x < intgField.Width; x++)
+                for (int x = 0; x < intgField.Width; x++)
                 {
                     var pos = new Position(x, y);
                     if (game.Map[pos].HasStructure)
@@ -283,10 +315,10 @@ namespace Halite3
             }
 
             Log.LogMessage("FLOW FIELD " + title);
-            for (var y = 0; y < flowField.Height; y++)
+            for (int y = 0; y < flowField.Height; y++)
             {
                 sb.Clear();
-                for (var x = 0; x < flowField.Width; x++)
+                for (int x = 0; x < flowField.Width; x++)
                 {
                     var pos = new Position(x, y);
                     if (game.Map[pos].HasStructure)
@@ -307,8 +339,16 @@ namespace Halite3
         Ending
     }
 
-    public sealed class ShipStatus
+    public sealed class ShipRequest
     {
-        public ShipState State { get; set; }
+        public ShipState State { get; }
+
+        public Position Target { get; }
+
+        public ShipRequest(ShipState state, Position target)
+        {
+            State = state;
+            Target = target;
+        }
     }
 }

@@ -40,7 +40,7 @@ namespace Halite3.Hlt
             {
                 foreach (Dropoff dropoff in game.Me.Dropoffs.Values)
                 {
-                    var dist = game.Map.GetManhattanDistance(ship.Position, dropoff.Position);
+                    int dist = game.Map.GetManhattanDistance(ship.Position, dropoff.Position);
 
                     if (dist <= steps)
                     {
@@ -58,7 +58,7 @@ namespace Halite3.Hlt
             Debug.Assert(game != null);
             Debug.Assert(ship != null);
 
-            var dist = game.Map.GetManhattanDistance(ship.Position, game.Me.Shipyard.Position);
+            int dist = game.Map.GetManhattanDistance(ship.Position, game.Me.Shipyard.Position);
 
             if (game.Me.Dropoffs != null)
             {
