@@ -48,24 +48,24 @@ namespace Halite3.Hlt
                     ushort best = WaveCell.Max.Cost;
                     FlowDirection direction = FlowDirection._;
 
-                    Check(current, ref best, ref direction, FlowDirection.N);
-                    Check(current, ref best, ref direction, FlowDirection.E);
-                    Check(current, ref best, ref direction, FlowDirection.S);
-                    Check(current, ref best, ref direction, FlowDirection.W);
+                    Check(FlowDirection.N);
+                    Check(FlowDirection.E);
+                    Check(FlowDirection.S);
+                    Check(FlowDirection.W);
 
                     _cells[y * Width + x] = new FlowCell(direction);
-                }
-            }
 
-            void Check(Position current, ref ushort best, ref FlowDirection direction, FlowDirection dir)
-            {
-                Position pos = dir.FromPosition(current);
+                    void Check(FlowDirection dir)
+                    {
+                        Position pos = dir.FromPosition(current);
 
-                ushort cost = waveField[pos].Cost;
-                if (cost < best)
-                {
-                    best = cost;
-                    direction = dir;
+                        ushort cost = waveField[pos].Cost;
+                        if (cost < best)
+                        {
+                            best = cost;
+                            direction = dir;
+                        }
+                    }
                 }
             }
         }

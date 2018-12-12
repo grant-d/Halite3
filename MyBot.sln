@@ -9,6 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".files", ".files", "{A8359A
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
 		run_game.bat = run_game.bat
+		run_seed.bat = run_seed.bat
 	EndProjectSection
 EndProject
 Global

@@ -26,14 +26,12 @@ namespace Halite3.Hlt
             }
         }
 
-        public CostField(Game game, CostCell myDrop, CostCell theirDrop, bool richIsCheap)
+        public CostField(Game game, int maxHalite, CostCell myDrop, CostCell theirDrop, bool richIsCheap)
         {
             Debug.Assert(game != null);
 
             Width = game.Map.Width;
             Height = game.Map.Height;
-
-            (_, int maxHalite) = game.Map.GetMinMaxHalite();
 
             _cells = new CostCell[Height * Width];
 

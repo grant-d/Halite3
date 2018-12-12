@@ -20,19 +20,22 @@ namespace Halite3
 
             using (var game = new Game())
             {
-                Log.Message(game.Map.GetMinMaxHalite().ToString());
-
-                int maxShips = 8 + game.Map.Width / 8; // 32->20, 40->21, 48->22, 56->23, 64->24
-                int maxDropOffs = -1 + game.Map.Width / 20; // 32->0, 40->1, 48->1, 64->2
-                int minBuildTurn = Constants.MaxTurns * 5 / 10;
-                int maxBuildTurn = Constants.MaxTurns * 8 / 10;
-                var states = new Dictionary<EntityId, ShipState>(maxShips);
-
                 // At this point "game" variable is populated with initial map data.
                 // This is a good place to do computationally expensive start-up pre-processing.
                 // As soon as you call "ready" function below, the 2 second per turn timer will start.
                 Game.Ready("MyCSharpBot");
                 Log.Message("Successfully created bot! My Player ID is " + game.MyId + ". Bot rng seed is " + rngSeed + ".");
+
+                (int minHalite, int maxHalite, int totalHalite, int meanHalite) = game.Map.GetHaliteStatistics();
+                Log.Message($"Min={minHalite}, Max={maxHalite}, Mean = {meanHalite}, Total={totalHalite}");
+
+                int maxShips = 1 + (24 * meanHalite * 2 / maxHalite);  //8 + game.Map.Width / 8; // 32->20, 40->21, 48->22, 56->23, 64->24
+                Log.Message($"Ships={maxShips}");
+
+                int maxDropOffs = -1 + game.Map.Width / 20; // 32->0, 40->1, 48->1, 64->2
+                int minBuildTurn = Constants.MaxTurns * 5 / 10;
+                int maxBuildTurn = Constants.MaxTurns * 8 / 10;
+                var states = new Dictionary<EntityId, ShipState>(maxShips);
 
                 while (true)
                 {
@@ -44,13 +47,15 @@ namespace Halite3
                     var requests = new Dictionary<EntityId, ShipRequest>(game.Me.Ships.Count);
                     foreach (Ship ship in game.Me.Ships.Values)
                     {
+                        (_, maxHalite, _, _) = game.Map.GetHaliteStatistics();
+
                         var goalMine = game.Map.GetRichestLocalSquare(ship.Position, 3 + ship.Id.Id % 3);
-                        var costMine = new CostField(game, CostCell.Max, CostCell.Wall, true);
+                        var costMine = new CostField(game, maxHalite, CostCell.Max, CostCell.Wall, true);
                         var waveMine = new WaveField(costMine, goalMine.Position);
                         var flowMine = new FlowField(waveMine);
                         //LogFields(game.Map, "MINE", costMine, waveMine, flowMine);
 
-                        var costHome = new CostField(game, CostCell.Min, CostCell.Wall, false);
+                        var costHome = new CostField(game, maxHalite, CostCell.Min, CostCell.Wall, false);
                         var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
                         var flowHome = new FlowField(waveHome);
                         //LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
