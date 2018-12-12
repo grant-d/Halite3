@@ -12,6 +12,23 @@ namespace Halite3.Hlt
         public int Width { get; }
         public int Height { get; }
 
+#pragma warning disable CA1043 // Use Integral Or String Argument For Indexers
+        public IntegrationCell this[Position position]
+#pragma warning restore CA1043 // Use Integral Or String Argument For Indexers
+        {
+            get
+            {
+                Position normalized = Normalize(position);
+                return _cells[normalized.Y][normalized.X];
+            }
+
+            private set
+            {
+                Position normalized = Normalize(position);
+                _cells[normalized.Y][normalized.X] = value;
+            }
+        }
+
         public IntegrationField(CostField costField, Position root)
         {
             Debug.Assert(costField != null);
@@ -28,7 +45,7 @@ namespace Halite3.Hlt
                 for (int x = 0; x < Width; x++)
                 {
                     // 1 - The algorithm starts by resetting the value of all cells to a large value (65535).
-                    _cells[y][x] = new IntegrationCell(IntegrationCell.Wall);
+                    _cells[y][x] = IntegrationCell.Max;
                 }
             }
 
@@ -41,7 +58,7 @@ namespace Halite3.Hlt
             Debug.Assert(goal != null);
 
             // 2 - The goal node then gets its total path cost set to zero.
-            At(goal).Cost = 0;
+            this[goal] = IntegrationCell.Zero;
 
             // 2 - And gets added to the open list.
             // From this point the goal node is treated like a normal node.
@@ -68,18 +85,18 @@ namespace Halite3.Hlt
                     Position neighbor = neighbors[i];
 
                     // 4- If the neighbor has a cost of 255 then it gets ignored completely.
-                    byte neighborCost = costField.At(neighbor).Cost;
-                    if (neighborCost == CostCell.Wall)
+                    CostCell neighborCell = costField[neighbor];
+                    if (neighborCell == CostCell.Wall)
                         continue;
 
                     // 4 - All of the current node’s neighbors get their total cost set to the current node’s cost
                     // plus their cost read from the cost field,
-                    ushort cost = (ushort)(At(currentPos).Cost + neighborCost);
+                    ushort cost = (ushort)(this[currentPos].Cost + neighborCell.Cost);
 
                     // 4 - This happens if and only if the new calculated cost is lower than the old cost.
-                    if (cost < At(neighbor).Cost)
+                    if (cost < this[neighbor].Cost)
                     {
-                        At(neighbor).Cost = cost;
+                        this[neighbor] = new IntegrationCell(cost);
 
                         // 4 - Then they get added to the back of the open list.
                         if (!openList.Contains(neighbor))
@@ -87,12 +104,6 @@ namespace Halite3.Hlt
                     }
                 }
             }
-        }
-
-        public IntegrationCell At(Position position)
-        {
-            Position normalized = Normalize(position);
-            return _cells[normalized.Y][normalized.X];
         }
 
         private Position Normalize(Position position)

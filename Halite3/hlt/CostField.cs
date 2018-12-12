@@ -11,7 +11,24 @@ namespace Halite3.Hlt
         public int Width { get; }
         public int Height { get; }
 
-        public CostField(Game game, byte myDrop, byte theirDrop)
+#pragma warning disable CA1043 // Use Integral Or String Argument For Indexers
+        public CostCell this[Position position]
+#pragma warning restore CA1043 // Use Integral Or String Argument For Indexers
+        {
+            get
+            {
+                Position normalized = Normalize(position);
+                return _cells[normalized.Y][normalized.X];
+            }
+
+            private set
+            {
+                Position normalized = Normalize(position);
+                _cells[normalized.Y][normalized.X] = value;
+            }
+        }
+
+        public CostField(Game game, CostCell myDrop, CostCell theirDrop)
         {
             Debug.Assert(game != null);
 
@@ -28,7 +45,7 @@ namespace Halite3.Hlt
 
                 for (int x = 0; x < Width; x++)
                 {
-                    int cost = 1;
+                    CostCell cost = default;
 
                     MapCell mapCell = game.Map.At(new Position(x, y));
 
@@ -45,20 +62,13 @@ namespace Halite3.Hlt
                     }
                     else
                     {
-                        double norm = mapCell.Halite * 253.0 / maxHalite; // 0-253
-
-                        cost = (int)(1 + norm);
+                        double norm = mapCell.Halite * 254.0 / maxHalite; // 0-254
+                        cost = new CostCell((byte)norm);
                     }
 
-                    _cells[y][x] = new CostCell((byte)cost);
+                    _cells[y][x] = cost;
                 }
             }
-        }
-
-        public CostCell At(Position position)
-        {
-            Position normalized = Normalize(position);
-            return _cells[normalized.Y][normalized.X];
         }
 
         private Position Normalize(Position position)

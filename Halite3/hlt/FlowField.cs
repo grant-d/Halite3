@@ -12,6 +12,23 @@ namespace Halite3.Hlt
         public int Width { get; }
         public int Height { get; }
 
+#pragma warning disable CA1043 // Use Integral Or String Argument For Indexers
+        public FlowCell this[Position position]
+#pragma warning restore CA1043 // Use Integral Or String Argument For Indexers
+        {
+            get
+            {
+                Position normalized = Normalize(position);
+                return _cells[normalized.Y][normalized.X];
+            }
+
+            private set
+            {
+                Position normalized = Normalize(position);
+                _cells[normalized.Y][normalized.X] = value;
+            }
+        }
+
         public FlowField(IntegrationField integrationField)
         {
             Debug.Assert(integrationField != null);
@@ -29,7 +46,7 @@ namespace Halite3.Hlt
                 {
                     var current = new Position(x, y);
 
-                    ushort best = IntegrationCell.Wall;
+                    ushort best = IntegrationCell.Max.Cost;
                     FlowDirection direction = FlowDirection._;
 
                     foreach (FlowDirection dir in Enum.GetValues(typeof(FlowDirection)))
@@ -39,7 +56,7 @@ namespace Halite3.Hlt
 
                         var pos = dir.ToPosition(current);
 
-                        ushort cost = integrationField.At(pos).Cost;
+                        ushort cost = integrationField[pos].Cost;
                         if (cost < best)
                         {
                             best = cost;
@@ -50,12 +67,6 @@ namespace Halite3.Hlt
                     _cells[y][x] = new FlowCell(direction);
                 }
             }
-        }
-
-        public FlowCell At(Position position)
-        {
-            Position normalized = Normalize(position);
-            return _cells[normalized.Y][normalized.X];
         }
 
         private Position Normalize(Position position)
