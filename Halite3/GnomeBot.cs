@@ -29,7 +29,9 @@ namespace Halite3
                 (int minHalite, int maxHalite, int totalHalite, int meanHalite) = game.Map.GetHaliteStatistics();
                 Log.Message($"Min={minHalite}, Max={maxHalite}, Mean = {meanHalite}, Total={totalHalite}");
 
-                int maxShips = 1 + (24 * meanHalite * 2 / maxHalite);  //8 + game.Map.Width / 8; // 32->20, 40->21, 48->22, 56->23, 64->24
+                int maxShips = game.Map.Height * game.Map.Width; // 32->1024, 40->1600, 48->2304, 56->3136, 64->4096
+                maxShips = maxShips / 160; // 32->6, 40->10, 48->13, 56->19, 64->27
+                maxShips = maxShips + (12 * meanHalite * 2 / maxHalite); // 32->12, 40->16, 48->19, 56->25, 64->33
                 Log.Message($"Ships={maxShips}");
 
                 int maxDropOffs = -1 + game.Map.Width / 20; // 32->0, 40->1, 48->1, 64->2
