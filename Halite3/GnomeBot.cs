@@ -137,7 +137,7 @@ namespace Halite3
                                     }
 
                                     // If current mine is not depleted
-                                    if (IsWorthMining(game.Map[ship.Position].Halite))//, ship.Halite))
+                                    if (IsWorthMining(game.Map[ship.Position].Halite, ship.Halite))
                                     {
                                         states[ship.Id] = ShipState.Mining;
 
@@ -334,37 +334,29 @@ namespace Halite3
             }
         }
 
-        private static bool IsWorthMining(int halite, double factor = 1.0)
-           => halite / Constants.ExtractRatio >= factor * halite / Constants.MoveCostRatio;
+        private static bool IsWorthMining(int mine, int ship)
+        {
+            // Calculate ship's bounty if it leaves now
+            double leaveNow = Math.Max(0, ship - MoveCost(mine));
 
-        //private static bool IsWorthMining(int mine, int ship)
-        //{
-        //    int profit = GetProfit(mine);
-        //    int cost = GetCost(mine);
+            // If mine <= 9, then moveCost = 9/10 == 0. So we must always keep mine >= 10.
+            // Then add enough for one more dig: 10 * 4/3 = 13.33. 13.33 * 0.75 == 10.
+            leaveNow += Constants.MoveCostRatio * Constants.ExtractRatio / (Constants.ExtractRatio - 1.0);
 
-        //    if (mine - cost <= 0) return false;
+            // Calculate ship's bounty if it leaves next turn
+            double profit = Profit(mine);
+            double leaveNext = Math.Max(0, ship + profit - MoveCost(mine - profit));
 
-        //    // Cannot move if out of fuel, so may as well keep mining
-        //    if (ship - cost <= 0) return true;
+            return leaveNow < leaveNext;
 
-        //    // If mine has enough reserves to fill ship, keep going
-        //    if (ship + mine >= Constants.MaxHalite) return true;
+            // 25% of halite available in cell, rounded up to the nearest whole number.
+            double Profit(double halite)
+                => halite / Constants.ExtractRatio; // 4
 
-        //    var ship2 = ship + profit - GetCost(mine - profit);
-        //    if (ship2 > ship - cost) return true;
-
-        //    Log.Message($"Mine={mine}, Ship={ship}, Profit={profit}, Cost={cost}, Ship2={ship2}");
-
-        //    return false;
-
-        //    // 25% of halite available in cell, rounded up to the nearest whole number.
-        //    int GetProfit(int halite)
-        //        => (int)Math.Ceiling(halite * 1.0 / Constants.ExtractRatio);
-
-        //    // 10% of halite available at turn origin cell is deducted from ship’s current halite.
-        //    int GetCost(int halite)
-        //        => (int)Math.Floor(halite * 1.0 / Constants.MoveCostRatio);
-        //}
+            // 10% of halite available at turn origin cell is deducted from ship’s current halite.
+            double MoveCost(double halite)
+                => halite / Constants.MoveCostRatio; // 10
+        }
 
         private static void LogFields(Map map, string title, CostField costField, WaveField waveField, FlowField flowField)
         {
