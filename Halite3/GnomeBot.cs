@@ -137,7 +137,7 @@ namespace Halite3
                                     }
 
                                     // If current mine is not depleted
-                                    if (IsWorthMining(game.Map[ship.Position].Halite))
+                                    if (IsWorthMining(game.Map[ship.Position].Halite))//, ship.Halite))
                                     {
                                         states[ship.Id] = ShipState.Mining;
 
@@ -147,11 +147,11 @@ namespace Halite3
                                         continue;
                                     }
                                     // If mine is depleted, but ship is nearly full
-                                    else if (ship.Halite > 0.97 * Constants.MaxHalite)
-                                    {
-                                        Log.Message($"{ship} is full; returning");
-                                        goto case ShipState.Returning;
-                                    }
+                                    //else if (ship.Halite > 0.97 * Constants.MaxHalite)
+                                    //{
+                                    //    Log.Message($"{ship} is full; returning");
+                                    //    goto case ShipState.Returning;
+                                    //}
 
                                     // Queue the request
                                     Log.Message($"{ship} has target {target}");
@@ -335,7 +335,36 @@ namespace Halite3
         }
 
         private static bool IsWorthMining(int halite, double factor = 1.0)
-            => halite / Constants.ExtractRatio >= factor * halite / Constants.MoveCostRatio;
+           => halite / Constants.ExtractRatio >= factor * halite / Constants.MoveCostRatio;
+
+        //private static bool IsWorthMining(int mine, int ship)
+        //{
+        //    int profit = GetProfit(mine);
+        //    int cost = GetCost(mine);
+
+        //    if (mine - cost <= 0) return false;
+
+        //    // Cannot move if out of fuel, so may as well keep mining
+        //    if (ship - cost <= 0) return true;
+
+        //    // If mine has enough reserves to fill ship, keep going
+        //    if (ship + mine >= Constants.MaxHalite) return true;
+
+        //    var ship2 = ship + profit - GetCost(mine - profit);
+        //    if (ship2 > ship - cost) return true;
+
+        //    Log.Message($"Mine={mine}, Ship={ship}, Profit={profit}, Cost={cost}, Ship2={ship2}");
+
+        //    return false;
+
+        //    // 25% of halite available in cell, rounded up to the nearest whole number.
+        //    int GetProfit(int halite)
+        //        => (int)Math.Ceiling(halite * 1.0 / Constants.ExtractRatio);
+
+        //    // 10% of halite available at turn origin cell is deducted from ship’s current halite.
+        //    int GetCost(int halite)
+        //        => (int)Math.Floor(halite * 1.0 / Constants.MoveCostRatio);
+        //}
 
         private static void LogFields(Map map, string title, CostField costField, WaveField waveField, FlowField flowField)
         {
