@@ -31,6 +31,18 @@ namespace Halite3.Hlt
             return y * width + x;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int ToIndex(int x, int y, int width, int height)
+        {
+            Debug.Assert(width > 0);
+            Debug.Assert(height > 0);
+
+            x = ((x % width) + width) % width;
+            y = ((y % height) + height) % height;
+
+            return y * width + x;
+        }
+
         /// <summary>
         /// Returns a new position based on moving one unit in the given direction from the given position.
         /// Does not account for toroidal wraparound, that's done in GameMap.

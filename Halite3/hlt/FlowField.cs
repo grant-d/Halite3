@@ -59,7 +59,7 @@ namespace Halite3.Hlt
                     {
                         Position pos = dir.FromPosition(current);
 
-                        ushort cost = waveField[pos].Cost;
+                        ushort cost = waveField[pos.X, pos.Y].Cost;
                         if (cost < best)
                         {
                             best = cost;

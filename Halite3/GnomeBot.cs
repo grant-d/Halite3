@@ -52,12 +52,12 @@ namespace Halite3
                         (_, maxHalite, _, _) = game.Map.GetHaliteStatistics();
 
                         var goalMine = game.Map.GetRichestLocalSquare(ship.Position, game.Map.Width / 8 + ship.Id.Id % 3);
-                        var costMine = new CostField(game, maxHalite, CostCell.Max, CostCell.Wall, true);
+                        var costMine = new CostField(game, maxHalite, CostField.MaxCost, CostField.WallCost, true);
                         var waveMine = new WaveField(costMine, goalMine.Position);
                         var flowMine = new FlowField(waveMine);
                         //LogFields(game.Map, "MINE", costMine, waveMine, flowMine);
 
-                        var costHome = new CostField(game, maxHalite, CostCell.Min, CostCell.Wall, false);
+                        var costHome = new CostField(game, maxHalite, CostField.MinCost, CostField.WallCost, false);
                         var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
                         var flowHome = new FlowField(waveHome);
                         //LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
@@ -393,9 +393,9 @@ namespace Halite3
                     {
                         var pos = new Position(x, y);
                         if (map[pos].HasStructure)
-                            sb.Append($"■{costField[pos].Cost:000}■|");
+                            sb.Append($"■{costField[x, y]:000}■|");
                         else
-                            sb.Append($" {costField[pos].Cost:000} |");
+                            sb.Append($" {costField[x, y]:000} |");
                     }
                     Log.Message(sb.ToString());
                 }
@@ -413,9 +413,9 @@ namespace Halite3
                     {
                         var pos = new Position(x, y);
                         if (map[pos].HasStructure)
-                            sb.Append($"{waveField[pos].Cost:00000}■");
+                            sb.Append($"{waveField[x, y].Cost:00000}■");
                         else
-                            sb.Append($"{waveField[pos].Cost:00000}|");
+                            sb.Append($"{waveField[x, y].Cost:00000}|");
                     }
                     Log.Message(sb.ToString());
                 }

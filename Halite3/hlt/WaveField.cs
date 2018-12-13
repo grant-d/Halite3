@@ -10,19 +10,23 @@ namespace Halite3.Hlt
         public int Width { get; }
         public int Height { get; }
 
-#pragma warning disable CA1043 // Use Integral Or String Argument For Indexers
-        public WaveCell this[Position position]
-#pragma warning restore CA1043 // Use Integral Or String Argument For Indexers
+        public WaveCell this[int index]
+        {
+            get => _cells[index];
+            private set => _cells[index] = value;
+        }
+
+        public WaveCell this[int x, int y]
         {
             get
             {
-                int index = position.ToIndex(Width, Height);
+                int index = Position.ToIndex(x, y, Width, Height);
                 return _cells[index];
             }
 
             private set
             {
-                int index = position.ToIndex(Width, Height);
+                int index = Position.ToIndex(x, y, Width, Height);
                 _cells[index] = value;
             }
         }
@@ -46,7 +50,7 @@ namespace Halite3.Hlt
             }
 
             // 2 - The goal node then gets its total path cost set to zero.
-            this[goal] = WaveCell.Goal;
+            this[goal.X, goal.Y] = WaveCell.Goal;
 
             // 2 - And gets added to the open list.
             // From this point the goal node is treated like a normal node.
@@ -73,18 +77,18 @@ namespace Halite3.Hlt
                     Position neighbor = neighbors[i];
 
                     // 4- If the neighbor has a cost of 255 then it gets ignored completely.
-                    CostCell neighborCell = costField[neighbor];
-                    if (neighborCell == CostCell.Wall)
+                    byte neighborCell = costField[neighbor.X, neighbor.Y];
+                    if (neighborCell == CostField.WallCost)
                         continue;
 
                     // 4 - All of the current node’s neighbors get their total cost set to the current node’s cost
                     // plus their cost read from the cost field,
-                    ushort cost = (ushort)(this[currentPos].Cost + neighborCell.Cost);
+                    ushort cost = (ushort)(this[currentPos.X, currentPos.Y].Cost + neighborCell);
 
                     // 4 - This happens if and only if the new calculated cost is lower than the old cost.
-                    if (cost < this[neighbor].Cost)
+                    if (cost < this[neighbor.X, neighbor.Y].Cost)
                     {
-                        this[neighbor] = new WaveCell(cost);
+                        this[neighbor.X, neighbor.Y] = new WaveCell(cost);
 
                         // 4 - Then they get added to the back of the open list.
                         if (!openList.Contains(neighbor))

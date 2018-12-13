@@ -5,36 +5,45 @@ namespace Halite3.Hlt
 {
     public sealed class CostField
     {
-        private readonly CostCell[] _cells;
+        public const byte GoalCost = 0;
+        public const byte MinCost = 1;
+        public const byte MaxCost = 254;
+        public const byte WallCost = byte.MaxValue; // 255
+
+        private readonly byte[] _cells;
 
         public int Width { get; }
         public int Height { get; }
 
-#pragma warning disable CA1043 // Use Integral Or String Argument For Indexers
-        public CostCell this[Position position]
-#pragma warning restore CA1043 // Use Integral Or String Argument For Indexers
+        public byte this[int index]
+        {
+            get => _cells[index];
+            private set => _cells[index] = value;
+        }
+
+        public byte this[int x, int y]
         {
             get
             {
-                int index = position.ToIndex(Width, Height);
+                int index = Position.ToIndex(x, y, Width, Height);
                 return _cells[index];
             }
 
             private set
             {
-                int index = position.ToIndex(Width, Height);
+                int index = Position.ToIndex(x, y, Width, Height);
                 _cells[index] = value;
             }
         }
 
-        public CostField(Game game, int maxHalite, CostCell myDrop, CostCell theirDrop, bool richIsCheap)
+        public CostField(Game game, int maxHalite, byte myDrop, byte theirDrop, bool richIsCheap)
         {
             Debug.Assert(game != null);
 
             Width = game.Map.Width;
             Height = game.Map.Height;
 
-            _cells = new CostCell[Height * Width];
+            _cells = new byte[Height * Width];
 
             // If mine <= 9, then moveCost = 9/10 == 0. So we must always keep mine >= 10.
             // Then add enough for one more dig: 10 * 4/3 = 13.33. 13.33 * 0.75 == 10.
@@ -53,7 +62,7 @@ namespace Halite3.Hlt
                 {
                     MapCell mapCell = game.Map[new Position(x, y)];
 
-                    CostCell cost = CostCell.Min; // 1
+                    byte cost = MinCost; // 1
                     if (mapCell.HasStructure)
                     {
                         if (mapCell.Structure.Owner == game.MyId)
@@ -74,16 +83,16 @@ namespace Halite3.Hlt
                         // being exponential instead of linear
                         double potential = Potential(h2);
                         double h3 = (potential - minPotential) / (maxPotential - minPotential); // 0..1
-                        double h4 = h3 * 253;
+                        double h4 = h3 * (MaxCost - MinCost); // 0..253
                         double h5 = h4 + 1; // 1..254
 
                         double halite = h5;
                         if (richIsCheap)
                             halite = byte.MaxValue - halite; // 254..1
 
-                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"{h1}, {h2}, {h3}, {h4}, {halite}, {minPotential}, {potential}, {maxPotential}"); // 1..254
+                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"{h1}, {h2}, {h3}, {h4}, {halite}, {minPotential}, {potential}, {maxPotential}");
 
-                        cost = new CostCell((byte)halite);
+                        cost = (byte)halite;
                     }
 
                     _cells[y * Width + x] = cost;
