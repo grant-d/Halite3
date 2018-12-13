@@ -147,11 +147,11 @@ namespace Halite3
                                         continue;
                                     }
                                     // If mine is depleted, but ship is nearly full
-                                    //else if (ship.Halite > 0.97 * Constants.MaxHalite)
-                                    //{
-                                    //    Log.Message($"{ship} is full; returning");
-                                    //    goto case ShipState.Returning;
-                                    //}
+                                    else if (ship.Halite > 0.97 * Constants.MaxHalite)
+                                    {
+                                        Log.Message($"{ship} is full; returning");
+                                        goto case ShipState.Returning;
+                                    }
 
                                     // Queue the request
                                     Log.Message($"{ship} has target {target}");
