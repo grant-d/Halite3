@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 
 namespace Halite3.Hlt
@@ -35,6 +36,14 @@ namespace Halite3.Hlt
 
             _cells = new CostCell[Height * Width];
 
+            const byte range = 253;
+
+            // Precompute exponent table
+            if (s_exp == null)
+            {
+                CacheExponents(maxHalite, range);
+            }
+
             for (int y = 0; y < Height; y++)
             {
                 for (int x = 0; x < Width; x++)
@@ -55,20 +64,36 @@ namespace Halite3.Hlt
                     }
                     else
                     {
-                        const int factor = byte.MaxValue - 2; // 253
-
                         // Normalize the amount of halite
-                        int halite = 1 + mapCell.Halite * factor / maxHalite; // 1..254
+                        int halite = s_exp[mapCell.Halite]; // 0..253
 
                         if (richIsCheap)
-                            halite = byte.MaxValue - halite; // 254..1
+                            halite = range + 2 - halite; // 254..1
 
-                        Debug.Assert(halite > 0 && halite < byte.MaxValue); // 1..254
+                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"{mapCell.Halite}, {halite}"); // 1..254
                         cost = new CostCell((byte)halite);
                     }
 
                     _cells[y * Width + x] = cost;
                 }
+            }
+        }
+
+        private static byte[] s_exp;
+
+        private static void CacheExponents(int maxHalite, byte range)
+        {
+            double exp = Constants.ExtractRatio / (Constants.ExtractRatio - 1.0); // 1.33
+            double max = Math.Pow(maxHalite * 1.0 / range, exp);
+            double ratio = range / max;
+
+            s_exp = new byte[1024];
+            for (int i = 0; i < s_exp.Length; i++)
+            {
+                // Normalize the amount of halite favoring higher values
+                double hal = ratio * Math.Pow(i * 1.0 / range, exp); // 0..253
+
+                s_exp[i] = (byte)(1 + hal); // 1..254
             }
         }
     }
