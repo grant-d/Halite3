@@ -83,7 +83,7 @@ namespace Halite3
                                     Log.Message($"Analyzing {ship} in Mining");
 
                                     // Follow the flowfield out
-                                    FlowCell flow = flowMine[ship.Position];
+                                    FlowCell flow = flowMine[ship.Position.X, ship.Position.Y];
                                     FlowDirection flowDir = flow.Direction;
                                     Position target = flowDir.FromPosition(ship.Position);
 
@@ -99,7 +99,7 @@ namespace Halite3
                                     {
                                         Log.Message($"{ship} is on drop");
 
-                                        if (!game.Map[target].IsEmpty)
+                                        if (!game.Map[target.X, target.Y].IsEmpty)
                                         {
                                             Log.Message($"{ship} has non-empty target {target}");
 
@@ -107,9 +107,11 @@ namespace Halite3
                                             int halite = 0;
                                             foreach (Direction dir1 in DirectionExtensions.AllCardinals)
                                             {
-                                                if (game.Map[ship.Position.DirectionalOffset(dir1)].Halite > halite)
+                                                Position p = ship.Position.DirectionalOffset(dir1);
+                                                int h = game.Map[p.X, p.Y].Halite;
+                                                if (h > halite)
                                                 {
-                                                    halite = game.Map[ship.Position.DirectionalOffset(dir1)].Halite;
+                                                    halite = h;
                                                     target = ship.Position.DirectionalOffset(dir1);
                                                     Log.Message($"{ship} has max target {target}");
                                                 }
@@ -120,7 +122,8 @@ namespace Halite3
                                             {
                                                 foreach (Direction dir1 in DirectionExtensions.AllCardinals)
                                                 {
-                                                    if (game.Map[ship.Position.DirectionalOffset(dir1)].IsEmpty)
+                                                    Position p = ship.Position.DirectionalOffset(dir1);
+                                                    if (game.Map[p.X, p.Y].IsEmpty)
                                                     {
                                                         target = ship.Position.DirectionalOffset(dir1);
                                                         Log.Message($"{ship} has empty target {target}");
@@ -137,7 +140,7 @@ namespace Halite3
                                     }
 
                                     // If current mine is not depleted
-                                    if (IsWorthMining(game.Map[ship.Position].Halite, ship.Halite))
+                                    if (IsWorthMining(game.Map[ship.Position.X, ship.Position.Y].Halite, ship.Halite))
                                     {
                                         states[ship.Id] = ShipState.Mining;
 
@@ -181,7 +184,7 @@ namespace Halite3
                                     }
 
                                     // Else follow the flowfield home
-                                    FlowCell flow = flowHome[ship.Position];
+                                    FlowCell flow = flowHome[ship.Position.X, ship.Position.Y];
                                     FlowDirection flowDir = flow.Direction;
 
                                     // Queue the request
@@ -197,7 +200,7 @@ namespace Halite3
                                     Log.Message($"Analyzing {ship} in Ending");
 
                                     // Else follow the flowfield home
-                                    FlowCell flow = flowHome[ship.Position];
+                                    FlowCell flow = flowHome[ship.Position.X, ship.Position.Y];
                                     FlowDirection flowDir = flow.Direction;
 
                                     // Queue the request
@@ -232,12 +235,12 @@ namespace Halite3
                             if (target1 == ship2.Position
                                 && target2 == ship1.Position)
                             {
-                                game.Map[ship2.Position].MarkSafe();
+                                game.Map[ship2.Position.X, ship2.Position.Y].MarkSafe();
                                 Direction dir = game.Map.NaiveNavigate(ship1, ship2.Position);
                                 commandQueue.Add(Command.Move(ship1.Id, dir));
                                 done[kvp1.Key] = true;
 
-                                game.Map[ship1.Position].MarkSafe();
+                                game.Map[ship1.Position.X, ship1.Position.Y].MarkSafe();
                                 dir = game.Map.NaiveNavigate(ship2, ship1.Position);
                                 commandQueue.Add(Command.Move(ship2.Id, dir));
                                 done[kvp2.Key] = true;
@@ -264,14 +267,14 @@ namespace Halite3
                                 Position target = target2;
 
                                 int best = 0;
-                                MapCell cell = game.Map[pos1];
+                                MapCell cell = game.Map[pos1.X, pos1.Y];
                                 if (cell.IsEmpty)
                                 {
                                     target = pos1;
                                     best = cell.Halite;
                                 }
 
-                                cell = game.Map[pos2];
+                                cell = game.Map[pos2.X, pos2.Y];
                                 if (cell.IsEmpty
                                     && cell.Halite > best)
                                     target = pos2;
@@ -302,7 +305,7 @@ namespace Halite3
                             && game.IsNextToDrop(ship.Position, out Position drop))
                         {
                             target = drop;
-                            game.Map[target].MarkSafe();
+                            game.Map[target.X, target.Y].MarkSafe();
                         }
 
                         Direction dir = game.Map.NaiveNavigate(ship, kvp.Value.Target);
@@ -372,11 +375,10 @@ namespace Halite3
                 sb.Append($"{y:000}|");
                 for (int x = 0; x < map.Width; x++)
                 {
-                    var pos = new Position(x, y);
-                    if (map[pos].HasStructure)
-                        sb.Append($"■{map[pos].Halite:000}■|");
+                    if (map[x, y].HasStructure)
+                        sb.Append($"■{map[x, y].Halite:000}■|");
                     else
-                        sb.Append($" {map[pos].Halite:000} |");
+                        sb.Append($" {map[x, y].Halite:000} |");
                 }
                 Log.Message(sb.ToString());
             }
@@ -391,8 +393,7 @@ namespace Halite3
                     sb.Append($"{y:000}|");
                     for (int x = 0; x < costField.Width; x++)
                     {
-                        var pos = new Position(x, y);
-                        if (map[pos].HasStructure)
+                        if (map[x, y].HasStructure)
                             sb.Append($"■{costField[x, y]:000}■|");
                         else
                             sb.Append($" {costField[x, y]:000} |");
@@ -411,8 +412,7 @@ namespace Halite3
                     sb.Append($"{y:000}|");
                     for (int x = 0; x < waveField.Width; x++)
                     {
-                        var pos = new Position(x, y);
-                        if (map[pos].HasStructure)
+                        if (map[x, y].HasStructure)
                             sb.Append($"{waveField[x, y].Cost:00000}■");
                         else
                             sb.Append($"{waveField[x, y].Cost:00000}|");
@@ -431,11 +431,10 @@ namespace Halite3
                     sb.Append($"{y:000}|");
                     for (int x = 0; x < flowField.Width; x++)
                     {
-                        var pos = new Position(x, y);
-                        if (map[pos].HasStructure)
-                            sb.Append($"■ {flowField[pos].Direction.ToSymbol()} ■|");
+                        if (map[x, y].HasStructure)
+                            sb.Append($"■ {flowField[x, y].Direction.ToSymbol()} ■|");
                         else
-                            sb.Append($"  {flowField[pos].Direction.ToSymbol()}  |");
+                            sb.Append($"  {flowField[x, y].Direction.ToSymbol()}  |");
                     }
                     Log.Message(sb.ToString());
                 }

@@ -13,25 +13,23 @@ namespace Halite3.Hlt
     /// <para><see cref="https://halite.io/learn-programming-challenge/api-docs#map"/></para>
     public sealed class Map
     {
-        private readonly MapCell[][] _cells;
+        private readonly MapCell[] _cells;
 
         public int Width { get; }
         public int Height { get; }
 
-#pragma warning disable CA1043 // Use Integral Or String Argument For Indexers
-        public MapCell this[Position position]
-#pragma warning restore CA1043 // Use Integral Or String Argument For Indexers
+        public MapCell this[int x, int y]
         {
             get
             {
-                Position normalized = Normalize(position);
-                return _cells[normalized.Y][normalized.X];
+                int index = Position.ToIndex(x, y, Width, Height);
+                return _cells[index];
             }
 
             private set
             {
-                Position normalized = Normalize(position);
-                _cells[normalized.Y][normalized.X] = value;
+                int index = Position.ToIndex(x, y, Width, Height);
+                _cells[index] = value;
             }
         }
 
@@ -41,7 +39,7 @@ namespace Halite3.Hlt
 #pragma warning disable CA1043 // Use Integral Or String Argument For Indexers
         public MapCell this[Entity entity]
 #pragma warning restore CA1043 // Use Integral Or String Argument For Indexers
-            => this[entity.Position];
+            => this[entity.Position.X, entity.Position.Y];
 
         /// <summary>
         /// Creates a new instance of a GameMap
@@ -54,11 +52,7 @@ namespace Halite3.Hlt
             Width = width;
             Height = height;
 
-            _cells = new MapCell[height][];
-            for (int y = 0; y < height; ++y)
-            {
-                _cells[y] = new MapCell[width];
-            }
+            _cells = new MapCell[Height * Width];
         }
 
         /// <summary>
@@ -66,8 +60,8 @@ namespace Halite3.Hlt
         /// </summary>
         public int GetManhattanDistance(Position source, Position target)
         {
-            Position normalizedSource = Normalize(source);
-            Position normalizedTarget = Normalize(target);
+            Position normalizedSource = source.Normalize(Width, Height);
+            Position normalizedTarget = target.Normalize(Width, Height);
 
             int dx = Math.Abs(normalizedSource.X - normalizedTarget.X);
             int dy = Math.Abs(normalizedSource.Y - normalizedTarget.Y);
@@ -79,21 +73,6 @@ namespace Halite3.Hlt
         }
 
         /// <summary>
-        /// A method that normalizes a position within the bounds of the toroidal map.
-        /// </summary>
-        /// <remarks>
-        /// Useful for handling the wraparound modulus arithmetic on x and y.
-        /// For example, if a ship at (x = 31, y = 4) moves to the east on a 32x32 map,
-        /// the normalized position would be (x = 0, y = 4), rather than the off-the-map position of (x = 32, y = 4).
-        /// </remarks>
-        public Position Normalize(Position position)
-        {
-            int x = ((position.X % Width) + Width) % Width;
-            int y = ((position.Y % Height) + Height) % Height;
-            return new Position(x, y);
-        }
-
-        /// <summary>
         /// A method that returns a list of direction(s) to move closer to a target disregarding collision possibilities.
         /// Returns an empty list if the source and destination are the same.
         /// </summary>
@@ -101,8 +80,8 @@ namespace Halite3.Hlt
         {
             var possibleMoves = new List<Direction>();
 
-            Position normalizedSource = Normalize(source);
-            Position normalizedDestination = Normalize(destination);
+            Position normalizedSource = source.Normalize(Width, Height);
+            Position normalizedDestination = destination.Normalize(Width, Height);
 
             int dx = Math.Abs(normalizedSource.X - normalizedDestination.X);
             int dy = Math.Abs(normalizedSource.Y - normalizedDestination.Y);
@@ -140,9 +119,9 @@ namespace Halite3.Hlt
             foreach (Direction direction in GetUnsafeMoves(ship.Position, destination))
             {
                 Position targetPos = ship.Position.DirectionalOffset(direction);
-                if (!this[targetPos].IsOccupied)
+                if (!this[targetPos.X, targetPos.Y].IsOccupied)
                 {
-                    this[targetPos].MarkUnsafe(ship);
+                    this[targetPos.X, targetPos.Y].MarkUnsafe(ship);
                     return direction;
                 }
             }
@@ -159,7 +138,8 @@ namespace Halite3.Hlt
             {
                 for (int x = 0; x < Width; ++x)
                 {
-                    _cells[y][x].Ship = null;
+                    int index = Position.ToIndex(x, y, Width, Height);
+                    _cells[index].Ship = null;
                 }
             }
 
@@ -171,7 +151,8 @@ namespace Halite3.Hlt
                 int x = input.GetInt();
                 int y = input.GetInt();
 
-                _cells[y][x].Halite = input.GetInt();
+                int index = Position.ToIndex(x, y, Width, Height);
+                _cells[index].Halite = input.GetInt();
             }
         }
 
@@ -193,8 +174,9 @@ namespace Halite3.Hlt
 
                 for (int x = 0; x < width; ++x)
                 {
+                    int index = Position.ToIndex(x, y, width, height);
                     int halite = rowInput.GetInt();
-                    map._cells[y][x] = new MapCell(new Position(x, y), halite);
+                    map._cells[index] = new MapCell(new Position(x, y), halite);
                 }
             }
 

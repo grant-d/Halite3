@@ -10,12 +10,6 @@ namespace Halite3.Hlt
         public int Width { get; }
         public int Height { get; }
 
-        public WaveCell this[int index]
-        {
-            get => _cells[index];
-            private set => _cells[index] = value;
-        }
-
         public WaveCell this[int x, int y]
         {
             get

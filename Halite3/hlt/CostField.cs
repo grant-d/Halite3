@@ -15,12 +15,6 @@ namespace Halite3.Hlt
         public int Width { get; }
         public int Height { get; }
 
-        public byte this[int index]
-        {
-            get => _cells[index];
-            private set => _cells[index] = value;
-        }
-
         public byte this[int x, int y]
         {
             get
@@ -60,7 +54,7 @@ namespace Halite3.Hlt
             {
                 for (int x = 0; x < Width; x++)
                 {
-                    MapCell mapCell = game.Map[new Position(x, y)];
+                    MapCell mapCell = game.Map[x, y];
 
                     byte cost = MinCost; // 1
                     if (mapCell.HasStructure)

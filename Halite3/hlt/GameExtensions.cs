@@ -16,7 +16,7 @@ namespace Halite3.Hlt
             {
                 for (int x = 0; x < map.Width; x++)
                 {
-                    MapCell cell = map[new Position(x, y)];
+                    MapCell cell = map[x, y];
 
                     sum += cell.Halite;
 
@@ -84,7 +84,7 @@ namespace Halite3.Hlt
                 return true;
             }
 
-            MapCell cell = game.Map[position];
+            MapCell cell = game.Map[position.X, position.Y];
 
             if (cell.HasStructure
                 && cell.Structure is Dropoff drop

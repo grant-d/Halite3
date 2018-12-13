@@ -13,19 +13,17 @@ namespace Halite3.Hlt
         public int Width { get; }
         public int Height { get; }
 
-#pragma warning disable CA1043 // Use Integral Or String Argument For Indexers
-        public FlowCell this[Position position]
-#pragma warning restore CA1043 // Use Integral Or String Argument For Indexers
+        public FlowCell this[int x, int y]
         {
             get
             {
-                int index = position.ToIndex(Width, Height);
+                int index = Position.ToIndex(x, y, Width, Height);
                 return _cells[index];
             }
 
             private set
             {
-                int index = position.ToIndex(Width, Height);
+                int index = Position.ToIndex(x, y, Width, Height);
                 _cells[index] = value;
             }
         }

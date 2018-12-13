@@ -19,20 +19,22 @@ namespace Halite3.Hlt
             Y = y;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal int ToIndex(int width, int height)
+        /// <summary>
+        /// A method that normalizes a position within the bounds of the toroidal map.
+        /// </summary>
+        /// <remarks>
+        /// Useful for handling the wraparound modulus arithmetic on x and y.
+        /// For example, if a ship at (x = 31, y = 4) moves to the east on a 32x32 map,
+        /// the normalized position would be (x = 0, y = 4), rather than the off-the-map position of (x = 32, y = 4).
+        /// </remarks>
+        public Position Normalize(int width, int height)
         {
-            Debug.Assert(width > 0);
-            Debug.Assert(height > 0);
-
-            int x = ((X % width) + width) % width;
-            int y = ((Y % height) + height) % height;
-
-            return y * width + x;
+            (int x, int y) = Normalize(X, Y, width, height);
+            return new Position(x, y);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static int ToIndex(int x, int y, int width, int height)
+        private static (int x, int y) Normalize(int x, int y, int width, int height)
         {
             Debug.Assert(width > 0);
             Debug.Assert(height > 0);
@@ -40,8 +42,19 @@ namespace Halite3.Hlt
             x = ((x % width) + width) % width;
             y = ((y % height) + height) % height;
 
+            return (x, y);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static int ToIndex(int x, int y, int width, int height)
+        {
+            (x, y) = Normalize(x, y, width, height);
             return y * width + x;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal int ToIndex(int width, int height)
+            => ToIndex(X, Y, width, height);
 
         /// <summary>
         /// Returns a new position based on moving one unit in the given direction from the given position.

@@ -34,16 +34,16 @@ namespace Halite3.Hlt
 
             int Sum(Position pos, Direction dir1, Direction dir2, Direction dir3)
             {
-                int sum = map[pos].Halite;
+                int sum = map[pos.X, pos.Y].Halite;
 
                 Position p1 = north.DirectionalOffset(dir1);
-                sum += map[p1].Halite;
+                sum += map[p1.X, p1.Y].Halite;
 
                 Position p2 = north.DirectionalOffset(dir2);
-                sum += map[p2].Halite;
+                sum += map[p2.X, p2.Y].Halite;
 
                 Position p3 = north.DirectionalOffset(dir3);
-                sum += map[p3].Halite;
+                sum += map[p3.X, p3.Y].Halite;
 
                 return sum;
             }
@@ -83,7 +83,7 @@ namespace Halite3.Hlt
 
             (int Sum, Position Position) Sum(Position center)
             {
-                int sum = map[center].Halite;
+                int sum = map[center.X, center.Y].Halite;
 
                 if (radius == 0)
                     return (sum, center);
@@ -97,7 +97,7 @@ namespace Halite3.Hlt
                     {
                         var pos = new Position(x, y);
 
-                        int hal = map[pos].Halite;
+                        int hal = map[pos.X, pos.Y].Halite;
                         if (hal > bestHal)
                         {
                             bestHal = hal;
@@ -146,7 +146,7 @@ namespace Halite3.Hlt
 
             int Sum(Position origin)
             {
-                int add = map[origin].Halite;
+                int add = map[origin.X, origin.Y].Halite;
 
                 if (length == 0)
                     return add;
@@ -157,7 +157,7 @@ namespace Halite3.Hlt
                     {
                         var pos = new Position(x, y);
 
-                        int hal = map[pos].Halite;
+                        int hal = map[pos.X, pos.Y].Halite;
                         add += hal;
                     }
                 }
@@ -173,7 +173,7 @@ namespace Halite3.Hlt
             Debug.Assert(radius >= 0 && radius <= map.Width && radius <= map.Height);
 
             Position mine = position;
-            int halite = map[mine].Halite;
+            int halite = map[mine.X, mine.Y].Halite;
 
             if (radius == 0)
                 return (mine, halite);
@@ -183,13 +183,13 @@ namespace Halite3.Hlt
                 for (int y = position.Y - radius; y <= position.Y + radius; y++)
                 {
                     var pos = new Position(x, y);
-                    MapCell cell = map[pos];
+                    MapCell cell = map[pos.X, pos.Y];
 
                     if (cell.IsEmpty
                         && cell.Halite > halite)
                     {
                         mine = pos;
-                        halite = map[pos].Halite;
+                        halite = map[pos.X, pos.Y].Halite;
                     }
                 }
             }
