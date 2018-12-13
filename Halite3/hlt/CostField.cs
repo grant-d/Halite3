@@ -54,7 +54,7 @@ namespace Halite3.Hlt
             double log75 = Math.Log(ratio);
 
             // halite * 0.75^p == 13.33
-            double Potential(double halite) => Math.Log(extra / (maxHalite + 1 - halite)) / log75;
+            double Potential(double halite) => Math.Log(extra / (maxHalite + 1 - halite)) / log75; // +1 else div-by-zero
             double minPotential = Potential(0);
             double maxPotential = Potential(maxHalite);
 
@@ -80,7 +80,7 @@ namespace Halite3.Hlt
                     else
                     {
                         double h1 = mapCell.Halite;
-                        double h2 = Math.Max(1, h1);
+                        double h2 = Math.Max(1, h1); // Else div-by-zero
 
                         // Normalize the amount of halite, with growth towards peaks
                         // being exponential instead of linear
@@ -91,7 +91,7 @@ namespace Halite3.Hlt
 
                         double halite = byte.MaxValue - h5; // 254..1
 
-                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"{h1}, {h2}, {h3}, {h4}, {halite}, {minPotential}, {potential}, {maxPotential}");
+                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"MINE {h1}, {h2}, {h3}, {h4}, {halite}, {minPotential}, {potential}, {maxPotential}");
 
                         cost = (byte)halite;
                     }
@@ -115,8 +115,8 @@ namespace Halite3.Hlt
             double log75 = Math.Log(ratio);
 
             // halite * 0.75^p == 13.33
-            double Potential(double halite) => Math.Log(extra / (maxHalite + 1 - halite)) / log75;
-            double minPotential = Potential(0);
+            double Potential(double halite) => Math.Log(extra / halite) / log75; // Trench
+            double minPotential = Potential(0.000001); // Else div-by-zero
             double maxPotential = Potential(maxHalite);
 
             var cells = new byte[game.Map.Width * game.Map.Height];
@@ -141,7 +141,7 @@ namespace Halite3.Hlt
                     else
                     {
                         double h1 = mapCell.Halite;
-                        double h2 = Math.Max(1, h1);
+                        double h2 = Math.Max(1, h1); // Else div-by-zero
 
                         // Normalize the amount of halite, with growth towards peaks
                         // being exponential instead of linear
@@ -152,7 +152,7 @@ namespace Halite3.Hlt
 
                         double halite = h5;
 
-                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"{h1}, {h2}, {h3}, {h4}, {halite}, {minPotential}, {potential}, {maxPotential}");
+                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"HOME {h1}, {h2}, {h3}, {h4}, {halite}, {minPotential}, {potential}, {maxPotential}");
 
                         cost = (byte)halite;
                     }

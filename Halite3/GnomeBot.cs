@@ -60,7 +60,7 @@ namespace Halite3
                         var costHome = CostField.CreateHome(game, maxHalite, CostField.MinCost, CostField.WallCost);
                         var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
                         var flowHome = new FlowField(waveHome);
-                        //LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
+                        LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
 
                         if (!states.TryGetValue(ship.Id, out ShipState status))
                         {
