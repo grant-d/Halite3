@@ -43,8 +43,8 @@ namespace Halite3.Hlt
             double log75 = Math.Log(ratio);
 
             // halite * 0.75^p == 13.33
-            double Potential(double halite) => Math.Max(0, Math.Log(extra / halite) / log75);
-
+            double Potential(double halite) => Math.Log(extra / (maxHalite + 1 - halite)) / log75;
+            double minPotential = Potential(0);
             double maxPotential = Potential(maxHalite);
 
             for (int y = 0; y < Height; y++)
@@ -67,17 +67,22 @@ namespace Halite3.Hlt
                     }
                     else
                     {
-                        double halite = Math.Max(1, mapCell.Halite);
+                        double h1 = mapCell.Halite;
+                        double h2 = Math.Max(1, h1);
+
+                        //halite = 253 * halite / maxHalite; // Linear
 
                         // Normalize the amount of halite
-                        double potential = Potential(halite);
-                        halite = 253 * potential / maxPotential; // 0..253
-                        halite += 1; // 1..254
+                        double potential = Potential(h2);
+                        double h3 = (potential - minPotential) / (maxPotential - minPotential); // 0..1
+                        double h4 = h3 * 253;
+                        double h5 = h4 + 1; // 1..254
 
+                        double halite = h5;
                         if (richIsCheap)
                             halite = byte.MaxValue - halite; // 254..1
 
-                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"{halite}"); // 1..254
+                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"{h1}, {h2}, {h3}, {h4}, {halite}, {minPotential}, {potential}, {maxPotential}"); // 1..254
 
                         cost = new CostCell((byte)halite);
                     }

@@ -456,6 +456,7 @@ namespace Halite3
         Mining,
         Returning,
         //Converting,
+        //Inspired,
         Ending
     }
 
