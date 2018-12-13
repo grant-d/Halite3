@@ -70,9 +70,8 @@ namespace Halite3.Hlt
                         double h1 = mapCell.Halite;
                         double h2 = Math.Max(1, h1);
 
-                        //halite = 253 * halite / maxHalite; // Linear
-
-                        // Normalize the amount of halite
+                        // Normalize the amount of halite, with growth towards peaks
+                        // being exponential instead of linear
                         double potential = Potential(h2);
                         double h3 = (potential - minPotential) / (maxPotential - minPotential); // 0..1
                         double h4 = h3 * 253;
