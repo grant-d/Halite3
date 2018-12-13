@@ -52,12 +52,12 @@ namespace Halite3
                         (_, maxHalite, _, _) = game.Map.GetHaliteStatistics();
 
                         var goalMine = game.Map.GetRichestLocalSquare(ship.Position, game.Map.Width / 8 + ship.Id.Id % 3);
-                        var costMine = new CostField(game, maxHalite, CostField.MaxCost, CostField.WallCost, true);
+                        var costMine = CostField.CreateMine(game, maxHalite, CostField.MaxCost, CostField.WallCost);
                         var waveMine = new WaveField(costMine, goalMine.Position);
                         var flowMine = new FlowField(waveMine);
                         //LogFields(game.Map, "MINE", costMine, waveMine, flowMine);
 
-                        var costHome = new CostField(game, maxHalite, CostField.MinCost, CostField.WallCost, false);
+                        var costHome = CostField.CreateHome(game, maxHalite, CostField.MinCost, CostField.WallCost);
                         var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
                         var flowHome = new FlowField(waveHome);
                         //LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
