@@ -41,7 +41,7 @@ namespace Halite3
                 var states = new Dictionary<EntityId, ShipState>(maxShips);
 
                 // Set static custom costs
-                (IDictionary<Position, byte> mineCosts, IDictionary<Position, byte> homeCosts) = SetCustomCosts(game);
+                (IReadOnlyDictionary<Position, byte> mineBaseCosts, IReadOnlyDictionary<Position, byte> homeBaseCosts) = SetCustomCosts(game);
 
                 while (true)
                 {
@@ -51,22 +51,24 @@ namespace Halite3
                     (_, maxHalite, _, _) = game.Map.GetHaliteStatistics();
 
                     // Some data may change so update it iteratively throughout gameplay
-                    UpdateCustomCosts(game, mineCosts, homeCosts);
+                    (IDictionary<Position, byte> mineCosts, IDictionary<Position, byte> homeCosts) = UpdateCustomCosts(game, mineBaseCosts, homeBaseCosts);
 
                     var costHome = CostField.CreateHome(game, maxHalite, homeCosts);
                     var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
                     var flowHome = new FlowField(waveHome);
-                    //LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
+                    LogFields(game, "HOME", costHome, waveHome, flowHome);
 
                     var requests = new Dictionary<EntityId, ShipRequest>(game.Me.Ships.Count);
                     foreach (Ship ship in game.Me.Ships.Values)
                     {
+                        Log.Message($"------- FLOURINE TURN {game.TurnNumber - 1} ------- ");
+
                         (Position Position, int Halite) goalMine = game.Map.GetRichestLocalSquare(ship.Position, game.Map.Width / 10 + ship.Id.Id % 3);
 
                         var costMine = CostField.CreateMine(game, maxHalite, mineCosts);
                         var waveMine = new WaveField(costMine, goalMine.Position);
                         var flowMine = new FlowField(waveMine);
-                        LogFields(game, "MINE", costMine, waveMine, flowMine);
+                        //LogFields(game, "MINE", costMine, waveMine, flowMine);
 
                         if (!states.TryGetValue(ship.Id, out ShipState status))
                         {
@@ -142,17 +144,19 @@ namespace Halite3
                                         // Queue the request
                                         requests[ship.Id] = new ShipRequest(ShipState.Mining, target);
                                         Log.Message($"{ship} has flow target {target}");
+                                        if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                         continue;
                                     }
 
                                     // If current mine is not depleted
-                                    if (IsWorthMining(game.Map[ship.Position.X, ship.Position.Y].Halite, ship.Halite))
+                                    if (IsWorthStaying(game.Map, ship, target))
                                     {
                                         states[ship.Id] = ShipState.Mining;
 
                                         // Stay in same mine
                                         Log.Message($"{ship} is staying");
                                         requests[ship.Id] = new ShipRequest(ShipState.Mining, ship.Position);
+                                        if (!game.IsOnDrop(target)) { mineCosts[ship.Position] = CostField.Wall; homeCosts[ship.Position] = CostField.Wall; }
                                         continue;
                                     }
                                     // If mine is depleted, but ship is nearly full
@@ -165,6 +169,7 @@ namespace Halite3
                                     // Queue the request
                                     Log.Message($"{ship} has target {target}");
                                     requests[ship.Id] = new ShipRequest(ShipState.Mining, target);
+                                    if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                 }
                                 break;
 
@@ -197,6 +202,7 @@ namespace Halite3
                                     Position target = flowDir.FromPosition(ship.Position);
                                     requests[ship.Id] = new ShipRequest(ShipState.Homing, target);
                                     Log.Message($"{ship} is returning to {target}");
+                                    if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                 }
                                 break;
 
@@ -212,6 +218,8 @@ namespace Halite3
                                     // Queue the request
                                     Position target = flowDir.FromPosition(ship.Position);
                                     requests[ship.Id] = new ShipRequest(ShipState.Ending, target);
+
+                                    if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                 }
                                 break;
 
@@ -221,6 +229,7 @@ namespace Halite3
 
                     var commandDict = new Dictionary<EntityId, Command>();
 
+                    /*
                     // Take care of swaps
                     var done = new Dictionary<EntityId, bool>();
                     foreach (KeyValuePair<EntityId, ShipRequest> kvp1 in requests)
@@ -330,15 +339,23 @@ namespace Halite3
                             }
                         }
                     }
+                    */
 
                     // Transfer remaining requests to command queue
                     foreach (KeyValuePair<EntityId, ShipRequest> kvp in requests)
                     {
-                        if (done.TryGetValue(kvp.Key, out bool isDone) && isDone)
-                            continue;
+                        //if (done.TryGetValue(kvp.Key, out bool isDone) && isDone)
+                        //    continue;
 
                         Ship ship = game.Me.Ships[kvp.Key.Id];
                         Position target = kvp.Value.Target;
+
+                        if (ship.Position == target)
+                        {
+                            commandDict[ship.Id] = ship.Stay();
+                            Log.Message($"Queued {ship} to stay");
+                            continue;
+                        };
 
                         // If ship is next to the drop
                         if (kvp.Value.State == ShipState.Ending
@@ -348,13 +365,17 @@ namespace Halite3
                             game.Map[target.X, target.Y].MarkSafe();
                         }
 
-                        Direction dir = game.Map.NaiveNavigate(ship, kvp.Value.Target);
+                        Direction dir = game.Map.NaiveNavigate(ship, target);
                         commandDict[ship.Id] = Command.Move(ship.Id, dir);
                         Log.Message($"Queued {ship} to move {dir}");
                     }
 
                     // 
                     var commandQueue = commandDict.Select(n => n.Value).ToList();
+                    foreach (var cmd in commandQueue)
+                    {
+                        Log.Message($"{cmd.Info}");
+                    }
 
                     // Spawn new ships as necessary
                     if (game.TurnNumber <= maxBuildTurn
@@ -380,7 +401,7 @@ namespace Halite3
             }
         }
 
-        private static (IDictionary<Position, byte> MineCosts, IDictionary<Position, byte> HomeCosts) SetCustomCosts(Game game)
+        private static (IReadOnlyDictionary<Position, byte> MineCosts, IReadOnlyDictionary<Position, byte> HomeCosts) SetCustomCosts(Game game)
         {
             // Each cell in the cost field is represented by a single byte that will normally be set to some value in between 1 and 255.
             // By default all cells are set to a value of 1.
@@ -417,8 +438,11 @@ namespace Halite3
             return (mineCosts, homeCosts);
         }
 
-        private static void UpdateCustomCosts(Game game, IDictionary<Position, byte> mineCosts, IDictionary<Position, byte> homeCosts)
+        private static (IDictionary<Position, byte> MineCosts, IDictionary<Position, byte> HomeCosts) UpdateCustomCosts(Game game, IReadOnlyDictionary<Position, byte> mineBaseCosts, IReadOnlyDictionary<Position, byte> homeBaseCosts)
         {
+            var mineCosts = new Dictionary<Position, byte>(mineBaseCosts);
+            var homeCosts = new Dictionary<Position, byte>(homeBaseCosts);
+
             // My dropoffs
             foreach (Position pos in game.Me.Dropoffs.Select(n => n.Value.Position))
             {
@@ -441,30 +465,48 @@ namespace Halite3
                 // When homing, accentuate my valleys and avoid collisions
                 homeCosts[pos] = CostField.Peak;
             }
+
+            return (mineCosts, homeCosts);
         }
 
-        private static bool IsWorthMining(int mine, int ship)
+        private static bool IsWorthStaying(Map map, Ship ship, Position target)
         {
-            // Calculate ship's bounty if it leaves now
-            double leaveNow = Math.Max(0, ship - MoveCost(mine));
+            double mine = map[ship.Position.X, ship.Position.Y].Halite;
+            bool barren = mine <= 0;
 
-            // If mine <= 9, then moveCost = 9/10 == 0. So we must always keep mine >= 10.
-            // Then add enough for one more dig: 10 * 4/3 = 13.33. 13.33 * 0.75 == 10.
-            leaveNow += Constants.MoveCostRatio * Constants.ExtractRatio / (Constants.ExtractRatio - 1.0); // 13.333
+            // Calculate ship's bounty if it leaves
+            double shipLeave = ship.Halite - Move(mine);
 
-            // Calculate ship's bounty if it leaves next turn
-            double profit = Profit(mine);
-            double leaveNext = Math.Max(0, ship + profit - MoveCost(mine - profit));
+            // Calculate ship's bounty if it stays
+            double mined = Mine(mine);
+            double shipStay = ship.Halite + mined;
 
-            return leaveNow < leaveNext;
+            Log.Message($"PROFIT GAIN: {ship}, available={mine}, leave={shipLeave}, stay={shipStay}, barren={barren}");
+
+            if (barren) return false;
+
+            // Calculate opportunity cost, by estimating next step
+            mine -= mined;
+            double shipStayStay = shipStay + Mine(mine);
+            double shipStayLeave = shipStay - Move(mine);
+            shipStay = Math.Max(shipStayStay, shipStayLeave);
+
+            mine = map[target.X, target.Y].Halite;
+            double shipLeaveLeave = shipLeave - Move(mine);
+            double shipLeaveStay = shipLeave + Mine(mine);
+            shipLeave = Math.Max(shipLeaveLeave, shipLeaveStay);
+
+            Log.Message($"OPPORT LOSS: {ship}, available={mine}, leave={shipLeave}, stay={shipStay}");
+
+            return shipStay >= shipLeave;
 
             // 25% of halite available in cell, rounded up to the nearest whole number.
-            double Profit(double halite)
-                => halite / Constants.ExtractRatio; // 4
+            double Mine(double halite)
+                => Math.Ceiling(halite / Constants.ExtractRatio); // 4
 
             // 10% of halite available at turn origin cell is deducted from ship’s current halite.
-            double MoveCost(double halite)
-                => halite / Constants.MoveCostRatio; // 10
+            double Move(double halite)
+                => Math.Floor(halite / Constants.MoveCostRatio); // 10
         }
 
         private static void LogFields(Game game, string title, CostField costField, WaveField waveField, FlowField flowField)
@@ -546,14 +588,18 @@ namespace Halite3
             {
                 char l = ' ';
                 if (map[x, y].HasStructure)
-                    l = '■';
-
-                switch (costField[x, y])
                 {
-                    case CostField.Goal: l = '◉'; break; // 0
-                    case CostField.Valley: l = '▼'; break; // 1
-                    case CostField.Peak: l = '▲'; break; // 254
-                    case CostField.Wall: l = '⎕'; break; // 255
+                    l = '■';
+                }
+                else
+                {
+                    switch (costField[x, y])
+                    {
+                        case CostField.Goal: l = '◉'; break; // 0
+                        case CostField.Valley: l = '▼'; break; // 1
+                        case CostField.Peak: l = '▲'; break; // 254
+                        case CostField.Wall: l = '⎕'; break; // 255
+                    }
                 }
 
                 char r = ' ';

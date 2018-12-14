@@ -41,6 +41,9 @@ namespace Halite3.Hlt
         public Command Stay()
             => Command.Move(Id, Direction.Still);
 
+        public override string ToString()
+            => $"{base.ToString()}({Halite} halite)";
+
         /// <summary>
         /// Reads in the details of a new ship from the Halite engine.
         /// </summary>
