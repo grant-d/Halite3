@@ -48,26 +48,26 @@ namespace Halite3
                     game.UpdateFrame();
                     int turnsRemaining = Constants.MaxTurns - game.TurnNumber;
 
+                    (_, maxHalite, _, _) = game.Map.GetHaliteStatistics();
+
                     // Some data may change so update it iteratively throughout gameplay
                     UpdateCustomCosts(game, mineCosts, homeCosts);
+
+                    var costHome = CostField.CreateHome(game, maxHalite, homeCosts);
+                    var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
+                    var flowHome = new FlowField(waveHome);
+                    LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
 
                     var commandQueue = new List<Command>();
                     var requests = new Dictionary<EntityId, ShipRequest>(game.Me.Ships.Count);
                     foreach (Ship ship in game.Me.Ships.Values)
                     {
-                        (_, maxHalite, _, _) = game.Map.GetHaliteStatistics();
-
-                        var goalMine = game.Map.GetRichestLocalSquare(ship.Position, game.Map.Width / 8 + ship.Id.Id % 3);
+                        (Position Position, int Halite) goalMine = game.Map.GetRichestLocalSquare(ship.Position, game.Map.Width / 8 + ship.Id.Id % 3);
 
                         var costMine = CostField.CreateMine(game, maxHalite, mineCosts);
                         var waveMine = new WaveField(costMine, goalMine.Position);
                         var flowMine = new FlowField(waveMine);
                         LogFields(game.Map, "MINE", costMine, waveMine, flowMine);
-
-                        var costHome = CostField.CreateHome(game, maxHalite, homeCosts);
-                        var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
-                        var flowHome = new FlowField(waveHome);
-                        LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
 
                         if (!states.TryGetValue(ship.Id, out ShipState status))
                         {

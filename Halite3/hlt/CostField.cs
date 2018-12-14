@@ -56,7 +56,8 @@ namespace Halite3.Hlt
 
             // Normalize the amount of halite, with exponential growth towards peaks
             // halite * 0.75^p == 13.33, so p = Log(13.33 / halite) / Log(0.75)
-            double Potential(double halite) => Math.Log(extra / (maxHalite + 50 - halite)) / log75; // +1 else div-by-zero
+            const double flattness = 25; // Higher is more flat. Must be > 1
+            double Potential(double halite) => Math.Log(extra / (maxHalite + flattness - halite)) / log75; // +1 else div-by-zero
 
             double minPotential = Potential(0);
             double maxPotential = Potential(maxHalite);
@@ -117,9 +118,10 @@ namespace Halite3.Hlt
             double maxPotential = Potential(maxHalite);
             double potentialRange = maxPotential - minPotential;
 
-            // Normalize the amount of halite, with exponential growth towards peaks
+            // Normalize the amount of halite, with exponential drop into canyons
             // halite * 0.75^p == 13.33, so p = Log(13.33 / halite) / Log(0.75)
-            double Potential(double halite) => Math.Log(extra / (maxHalite + 50 - halite)) / log75; // +1 else div-by-zero
+            const double flattness = 25; // Higher is more flat. Must be > 1
+            double Potential(double halite) => Math.Log(extra / (maxHalite + halite + flattness)) / log75; // +1 else div-by-zero
 
             var cells = new byte[game.Map.Width * game.Map.Height];
 
@@ -146,8 +148,8 @@ namespace Halite3.Hlt
                         // Shift to 1..254
                         double h4 = h3 + 1;
 
-                        // Invert since we want rich valleys. So 1->254, 254->1
-                        byte halite = (byte)(byte.MaxValue - h4);
+                        // Do not invert since we want barren valleys.
+                        byte halite = (byte)h4;
 
                         Debug.Assert(halite > 0 && halite < byte.MaxValue, $"MINE {h1}, {h2}, {h3}, _{halite}_, {minPotential}, {potential}, {maxPotential}");
 
