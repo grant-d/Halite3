@@ -56,7 +56,7 @@ namespace Halite3
                     var costHome = CostField.CreateHome(game, maxHalite, homeCosts);
                     var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
                     var flowHome = new FlowField(waveHome);
-                    LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
+                    //LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
 
                     var commandQueue = new List<Command>();
                     var requests = new Dictionary<EntityId, ShipRequest>(game.Me.Ships.Count);
@@ -67,7 +67,7 @@ namespace Halite3
                         var costMine = CostField.CreateMine(game, maxHalite, mineCosts);
                         var waveMine = new WaveField(costMine, goalMine.Position);
                         var flowMine = new FlowField(waveMine);
-                        LogFields(game.Map, "MINE", costMine, waveMine, flowMine);
+                        //LogFields(game.Map, "MINE", costMine, waveMine, flowMine);
 
                         if (!states.TryGetValue(ship.Id, out ShipState status))
                         {
@@ -295,6 +295,8 @@ namespace Halite3
                                     Log.Message($"Wiggled {ship2} from behind {ship1} to {target}");
                                 }
                             }
+
+                            // More than 1 ship picked the same target
                         }
                     }
 

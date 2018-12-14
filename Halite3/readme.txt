@@ -9,3 +9,5 @@ TODO
 - merge cost and wave
 - for wave, ship should be goal, and everything flows out from that
 - Check if IsWorthMining is correct - it might be ok to mine to 0
+- More than 1 ship picked the same target
+- Anti-squat still not working
