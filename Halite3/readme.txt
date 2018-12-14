@@ -11,3 +11,4 @@ TODO
 - for wave, ship should be goal, and everything flows out from that
 - Check if IsWorthMining is correct - it might be ok to mine to 0
 - Anti-squat still not working
+- For path finding, mark all target positions as walls

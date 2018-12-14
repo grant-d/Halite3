@@ -66,7 +66,7 @@ namespace Halite3
                         var costMine = CostField.CreateMine(game, maxHalite, mineCosts);
                         var waveMine = new WaveField(costMine, goalMine.Position);
                         var flowMine = new FlowField(waveMine);
-                        //LogFields(game.Map, "MINE", costMine, waveMine, flowMine);
+                        LogFields(game, "MINE", costMine, waveMine, flowMine);
 
                         if (!states.TryGetValue(ship.Id, out ShipState status))
                         {
@@ -467,24 +467,26 @@ namespace Halite3
                 => halite / Constants.MoveCostRatio; // 10
         }
 
-        private static void LogFields(Map map, string title, CostField costField, WaveField waveField, FlowField flowField)
+        private static void LogFields(Game game, string title, CostField costField, WaveField waveField, FlowField flowField)
         {
-            Debug.Assert(map != null);
+            Debug.Assert(game != null);
+            Debug.Assert(costField != null);
+            Debug.Assert(waveField != null);
+            Debug.Assert(flowField != null);
 
+            var map = game.Map;
             var sb = new StringBuilder();
 
             Log.Message($"{title}: MAP");
-            ShowColNos();
+            ColHeader();
             for (int y = 0; y < map.Height; y++)
             {
                 sb.Clear();
                 sb.Append($"{y:000}|");
                 for (int x = 0; x < map.Width; x++)
                 {
-                    if (map[x, y].HasStructure)
-                        sb.Append($"■{map[x, y].Halite:000}■|");
-                    else
-                        sb.Append($" {map[x, y].Halite:000} |");
+                    (char l, char r) = Symbol(x, y);
+                    sb.Append($"{l}{map[x, y].Halite:000}{r}|");
                 }
                 Log.Message(sb.ToString());
             }
@@ -492,17 +494,15 @@ namespace Halite3
             if (costField != null)
             {
                 Log.Message($"{title}: COST");
-                ShowColNos();
+                ColHeader();
                 for (int y = 0; y < costField.Height; y++)
                 {
                     sb.Clear();
                     sb.Append($"{y:000}|");
                     for (int x = 0; x < costField.Width; x++)
                     {
-                        if (map[x, y].HasStructure)
-                            sb.Append($"■{costField[x, y]:000}■|");
-                        else
-                            sb.Append($" {costField[x, y]:000} |");
+                        (char l, char r) = Symbol(x, y);
+                        sb.Append($"{l}{costField[x, y]:000}{r}|");
                     }
                     Log.Message(sb.ToString());
                 }
@@ -511,17 +511,15 @@ namespace Halite3
             if (waveField != null)
             {
                 Log.Message($"{title}: WAVE");
-                ShowColNos();
+                ColHeader();
                 for (int y = 0; y < waveField.Height; y++)
                 {
                     sb.Clear();
                     sb.Append($"{y:000}|");
                     for (int x = 0; x < waveField.Width; x++)
                     {
-                        if (map[x, y].HasStructure)
-                            sb.Append($"{waveField[x, y].Cost:00000}■");
-                        else
-                            sb.Append($"{waveField[x, y].Cost:00000}|");
+                        (char l, char r) = Symbol(x, y);
+                        sb.Append($"{l}{waveField[x, y].Cost:0000}{r}");
                     }
                     Log.Message(sb.ToString());
                 }
@@ -530,23 +528,42 @@ namespace Halite3
             if (flowField != null)
             {
                 Log.Message($"{title}: FLOW");
-                ShowColNos();
+                ColHeader();
                 for (int y = 0; y < flowField.Height; y++)
                 {
                     sb.Clear();
                     sb.Append($"{y:000}|");
                     for (int x = 0; x < flowField.Width; x++)
                     {
-                        if (map[x, y].HasStructure)
-                            sb.Append($"■ {flowField[x, y].Direction.ToSymbol()} ■|");
-                        else
-                            sb.Append($"  {flowField[x, y].Direction.ToSymbol()}  |");
+                        (char l, char r) = Symbol(x, y);
+                        sb.Append($"{l} {flowField[x, y].Direction.ToSymbol()} {r}|");
                     }
                     Log.Message(sb.ToString());
                 }
             }
 
-            void ShowColNos()
+            (char l, char r) Symbol(int x, int y)
+            {
+                char l = ' ';
+                if (map[x, y].HasStructure)
+                    l = '■';
+
+                switch (costField[x, y])
+                {
+                    case CostField.Goal: l = '◉'; break; // 0
+                    case CostField.Valley: l = '▼'; break; // 1
+                    case CostField.Peak: l = '▲'; break; // 254
+                    case CostField.Wall: l = '⎕'; break; // 255
+                }
+
+                char r = ' ';
+                if (map[x, y].IsOccupied)
+                    r = map[x, y].Ship.Owner.Id == game.MyId.Id ? '+' : '-';
+
+                return (l, r);
+            }
+
+            void ColHeader()
             {
                 sb.Clear().Append("   |");
                 for (int x = 0; x < map.Width; x++)
