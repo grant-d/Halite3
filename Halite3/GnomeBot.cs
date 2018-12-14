@@ -58,11 +58,10 @@ namespace Halite3
                     var flowHome = new FlowField(waveHome);
                     //LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
 
-                    var commandQueue = new List<Command>();
                     var requests = new Dictionary<EntityId, ShipRequest>(game.Me.Ships.Count);
                     foreach (Ship ship in game.Me.Ships.Values)
                     {
-                        (Position Position, int Halite) goalMine = game.Map.GetRichestLocalSquare(ship.Position, game.Map.Width / 8 + ship.Id.Id % 3);
+                        (Position Position, int Halite) goalMine = game.Map.GetRichestLocalSquare(ship.Position, game.Map.Width / 10 + ship.Id.Id % 3);
 
                         var costMine = CostField.CreateMine(game, maxHalite, mineCosts);
                         var waveMine = new WaveField(costMine, goalMine.Position);
@@ -75,7 +74,7 @@ namespace Halite3
                         }
 
                         (Position Position, int Distance) closestBase = game.GetClosestDrop(ship);
-                        if (turnsRemaining - game.Me.Ships.Count <= closestBase.Distance)
+                        if (turnsRemaining - game.Me.Ships.Count <= closestBase.Distance * 1.05)
                         {
                             Log.Message($"Setting {ship} to Ending");
                             status = ShipState.Ending;
@@ -220,10 +219,15 @@ namespace Halite3
                         }
                     }
 
+                    var commandDict = new Dictionary<EntityId, Command>();
+
                     // Take care of swaps
                     var done = new Dictionary<EntityId, bool>();
                     foreach (KeyValuePair<EntityId, ShipRequest> kvp1 in requests)
                     {
+                        if (done.TryGetValue(kvp1.Key, out bool isDone) && isDone)
+                            continue;
+
                         Ship ship1 = game.Me.Ships[kvp1.Key.Id];
                         Position target1 = kvp1.Value.Target;
 
@@ -232,7 +236,7 @@ namespace Halite3
                             if (kvp1.Key == kvp2.Key)
                                 continue;
 
-                            if (done.TryGetValue(kvp2.Key, out bool isDone) && isDone)
+                            if (done.TryGetValue(kvp2.Key, out isDone) && isDone)
                                 continue;
 
                             Ship ship2 = game.Me.Ships[kvp2.Key.Id];
@@ -244,12 +248,12 @@ namespace Halite3
                             {
                                 game.Map[ship2.Position.X, ship2.Position.Y].MarkSafe();
                                 Direction dir = game.Map.NaiveNavigate(ship1, ship2.Position);
-                                commandQueue.Add(Command.Move(ship1.Id, dir));
+                                commandDict[ship1.Id] = Command.Move(ship1.Id, dir);
                                 done[kvp1.Key] = true;
 
                                 game.Map[ship1.Position.X, ship1.Position.Y].MarkSafe();
                                 dir = game.Map.NaiveNavigate(ship2, ship1.Position);
-                                commandQueue.Add(Command.Move(ship2.Id, dir));
+                                commandDict[ship2.Id] = Command.Move(ship2.Id, dir);
                                 done[kvp2.Key] = true;
 
                                 Log.Message($"Swapped {ship1} and {ship2}");
@@ -289,14 +293,41 @@ namespace Halite3
                                 if (target != target2)
                                 {
                                     Direction dir = game.Map.NaiveNavigate(ship2, target);
-                                    commandQueue.Add(Command.Move(ship2.Id, dir));
+                                    commandDict[ship2.Id] = Command.Move(ship2.Id, dir);
                                     done[kvp2.Key] = true;
 
                                     Log.Message($"Wiggled {ship2} from behind {ship1} to {target}");
                                 }
+                                continue;
                             }
 
                             // More than 1 ship picked the same target
+                            if (target1 == target2)
+                            {
+                                // If mine1 is richer than mine2
+                                if (game.Map[ship1.Position.X, ship1.Position.Y].Halite > game.Map[ship2.Position.X, ship2.Position.Y].Halite)
+                                {
+                                    // Move ship2
+                                    Direction dir = game.Map.NaiveNavigate(ship2, target2);
+                                    commandDict[ship2.Id] = Command.Move(ship2.Id, dir);
+                                    commandDict[ship1.Id] = ship1.Stay();
+
+                                    Log.Message($"Stopped {ship1} so {ship2} can move to {target2}");
+                                }
+                                else
+                                {
+                                    // Else move ship1
+                                    Direction dir = game.Map.NaiveNavigate(ship1, target1);
+                                    commandDict[ship1.Id] = Command.Move(ship1.Id, dir);
+                                    commandDict[ship2.Id] = ship2.Stay();
+
+                                    Log.Message($"Stopped {ship2} so {ship1} can move to {target1}");
+                                }
+
+                                done[kvp1.Key] = true;
+                                done[kvp2.Key] = true;
+                                continue;
+                            }
                         }
                     }
 
@@ -318,9 +349,12 @@ namespace Halite3
                         }
 
                         Direction dir = game.Map.NaiveNavigate(ship, kvp.Value.Target);
-                        commandQueue.Add(Command.Move(ship.Id, dir));
+                        commandDict[ship.Id] = Command.Move(ship.Id, dir);
                         Log.Message($"Queued {ship} to move {dir}");
                     }
+
+                    // 
+                    var commandQueue = commandDict.Select(n => n.Value).ToList();
 
                     // Spawn new ships as necessary
                     if (game.TurnNumber <= maxBuildTurn
