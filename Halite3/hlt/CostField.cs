@@ -52,16 +52,16 @@ namespace Halite3.Hlt
             // Then add enough for one more dig: 10 * 4/3 = 13.33. 13.33 * 0.75 == 10.
             double ratio = (Constants.ExtractRatio - 1.0) / Constants.ExtractRatio; // 0.75
             double extra = Constants.MoveCostRatio / ratio; // 13.33
-            double log75 = Math.Log(ratio);
+            double log75 = Math.Log10(ratio); // -0.125
 
             // Normalize the amount of halite, with exponential growth towards peaks
             // halite * 0.75^p == 13.33, so p = Log(13.33 / halite) / Log(0.75)
-            const double flattness = 25; // Higher is more flat. Must be > 1
-            double Potential(double halite) => Math.Log(extra / (maxHalite + flattness - halite)) / log75; // +1 else div-by-zero
+            const double flattness = 25; // Higher is more flat. Must be > 0 else div-by-zero
+            double Potential(double halite) => Math.Log10(extra / (maxHalite + flattness - halite)) / log75;
 
-            double minPotential = Potential(0);
-            double maxPotential = Potential(maxHalite);
-            double potentialRange = maxPotential - minPotential;
+            double minPotential = Potential(1); // 2.321
+            double maxPotential = Potential(maxHalite); // 940 -> 14.884
+            double potentialRange = maxPotential - minPotential; // 12.563
 
             var cells = new byte[game.Map.Width * game.Map.Height];
 
@@ -74,7 +74,8 @@ namespace Halite3.Hlt
                     int ix = y * game.Map.Width + x;
                     if (cells[ix] != Wall) // Skip placeholders
                     {
-                        double h1 = game.Map[x, y].Halite;
+                        // By default all cells are 1 (0 is goal, 255 is wall)
+                        double h1 = Math.Max(1, game.Map[x, y].Halite);
 
                         // Normalize
                         double potential = Potential(h1);
@@ -83,7 +84,7 @@ namespace Halite3.Hlt
                         double h2 = (potential - minPotential) / potentialRange;
 
                         // Scale to 0..253
-                        double h3 = h2 * (Peak - Valley);
+                        double h3 = h2 * (Peak - Valley); // 254-1
 
                         // Shift to 1..254
                         double h4 = h3 + 1;
@@ -112,16 +113,16 @@ namespace Halite3.Hlt
             // Then add enough for one more dig: 10 * 4/3 = 13.33. 13.33 * 0.75 == 10.
             double ratio = (Constants.ExtractRatio - 1.0) / Constants.ExtractRatio; // 0.75
             double extra = Constants.MoveCostRatio / ratio; // 13.33
-            double log75 = Math.Log(ratio);
+            double log75 = Math.Log10(ratio); // -0.125
 
-            double minPotential = Potential(0);
-            double maxPotential = Potential(maxHalite);
-            double potentialRange = maxPotential - minPotential;
+            double minPotential = Potential(1); // 2.321
+            double maxPotential = Potential(maxHalite); // 940 -> 14.884
+            double potentialRange = maxPotential - minPotential; // 12.563
 
             // Normalize the amount of halite, with exponential drop into canyons
             // halite * 0.75^p == 13.33, so p = Log(13.33 / halite) / Log(0.75)
-            const double flattness = 25; // Higher is more flat. Must be > 1
-            double Potential(double halite) => Math.Log(extra / (maxHalite + halite + flattness)) / log75; // +1 else div-by-zero
+            const double flattness = 940; // Higher is more flat. Must be > 0 else div-by-zero
+            double Potential(double halite) => Math.Log10(extra / (halite + flattness)) / log75;
 
             var cells = new byte[game.Map.Width * game.Map.Height];
 
@@ -134,7 +135,8 @@ namespace Halite3.Hlt
                     int ix = y * game.Map.Width + x;
                     if (cells[ix] != Wall) // Skip placeholders
                     {
-                        double h1 = game.Map[x, y].Halite;
+                        // By default all cells are 1 (0 is goal, 255 is wall)
+                        double h1 = Math.Max(1, game.Map[x, y].Halite);
 
                         // Normalize
                         double potential = Potential(h1);
@@ -143,7 +145,7 @@ namespace Halite3.Hlt
                         double h2 = (potential - minPotential) / potentialRange;
 
                         // Scale to 0..253
-                        double h3 = h2 * (Peak - Valley);
+                        double h3 = h2 * (Peak - Valley); // 254-1
 
                         // Shift to 1..254
                         double h4 = h3 + 1;
@@ -151,7 +153,7 @@ namespace Halite3.Hlt
                         // Do not invert since we want barren valleys.
                         byte halite = (byte)h4;
 
-                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"MINE {h1}, {h2}, {h3}, _{halite}_, {minPotential}, {potential}, {maxPotential}");
+                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"HOME {h1}, {h2}, {h3}, _{halite}_, {minPotential}, {potential}, {maxPotential}");
 
                         cells[ix] = halite;
                     }

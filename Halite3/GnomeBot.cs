@@ -414,7 +414,7 @@ namespace Halite3
 
             // If mine <= 9, then moveCost = 9/10 == 0. So we must always keep mine >= 10.
             // Then add enough for one more dig: 10 * 4/3 = 13.33. 13.33 * 0.75 == 10.
-            leaveNow += Constants.MoveCostRatio * Constants.ExtractRatio / (Constants.ExtractRatio - 1.0);
+            leaveNow += Constants.MoveCostRatio * Constants.ExtractRatio / (Constants.ExtractRatio - 1.0); // 13.333
 
             // Calculate ship's bounty if it leaves next turn
             double profit = Profit(mine);

@@ -8,3 +8,4 @@ TODO
 - overlay multi-flows so that all rich means are peaks
 - merge cost and wave
 - for wave, ship should be goal, and everything flows out from that
+- Check if IsWorthMining is correct - it might be ok to mine to 0
