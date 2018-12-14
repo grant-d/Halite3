@@ -72,7 +72,7 @@ namespace Halite3.Hlt
 
                     // 4- If the neighbor has a cost of 255 then it gets ignored completely.
                     byte neighborCell = costField[neighbor.X, neighbor.Y];
-                    if (neighborCell == CostField.WallCost)
+                    if (neighborCell == CostField.Wall)
                         continue;
 
                     // 4 - All of the current node’s neighbors get their total cost set to the current node’s cost

@@ -1,14 +1,15 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace Halite3.Hlt
 {
     public sealed class CostField
     {
-        public const byte GoalCost = 0;
-        public const byte MinCost = 1;
-        public const byte MaxCost = 254;
-        public const byte WallCost = byte.MaxValue; // 255
+        public const byte Goal = 0;
+        public const byte Valley = 1;
+        public const byte Peak = 254;
+        public const byte Wall = byte.MaxValue; // 255
 
         private readonly byte[] _cells;
 
@@ -43,7 +44,7 @@ namespace Halite3.Hlt
             _cells = cells;
         }
 
-        public static CostField CreateMine(Game game, int maxHalite, byte myDrop, byte theirDrop)
+        public static CostField CreateMine(Game game, int maxHalite, IReadOnlyDictionary<Position, byte> customCosts)
         {
             Debug.Assert(game != null);
 
@@ -59,52 +60,41 @@ namespace Halite3.Hlt
             double maxPotential = Potential(maxHalite);
 
             var cells = new byte[game.Map.Width * game.Map.Height];
+
+            SetCustomCosts(game, customCosts, cells, true);
+
             for (int y = 0; y < game.Map.Height; y++)
             {
                 for (int x = 0; x < game.Map.Width; x++)
                 {
-                    MapCell mapCell = game.Map[x, y];
-
-                    byte cost = MinCost; // 1
-                    if (mapCell.HasStructure)
+                    int ix = y * game.Map.Width + x;
+                    if (cells[ix] != Wall) // We used wall as a placeholder
                     {
-                        if (mapCell.Structure.Owner == game.MyId)
-                        {
-                            cost = myDrop;
-                        }
-                        else
-                        {
-                            cost = theirDrop;
-                        }
-                    }
-                    else
-                    {
-                        double h1 = mapCell.Halite;
+                        double h1 = game.Map[x, y].Halite;
                         double h2 = Math.Max(1, h1); // Else div-by-zero
 
-                        // Normalize the amount of halite, with growth towards peaks
-                        // being exponential instead of linear
+                        // Normalize the amount of halite, with exponential growth towards peaks
                         double potential = Potential(h2);
                         double h3 = (potential - minPotential) / (maxPotential - minPotential); // 0..1
-                        double h4 = h3 * (MaxCost - MinCost); // 0..253
+                        double h4 = h3 * (Peak - Valley); // 0..253
                         double h5 = h4 + 1; // 1..254
 
                         double halite = byte.MaxValue - h5; // 254..1
 
                         Debug.Assert(halite > 0 && halite < byte.MaxValue, $"MINE {h1}, {h2}, {h3}, {h4}, {halite}, {minPotential}, {potential}, {maxPotential}");
 
-                        cost = (byte)halite;
+                        cells[ix] = (byte)halite;
                     }
-
-                    cells[y * game.Map.Width + x] = cost;
                 }
             }
+
+            SetCustomCosts(game, customCosts, cells, false);
 
             var field = new CostField(game.Map.Width, game.Map.Height, cells);
             return field;
         }
 
-        public static CostField CreateHome(Game game, int maxHalite, byte myDrop, byte theirDrop)
+        public static CostField CreateHome(Game game, int maxHalite, IReadOnlyDictionary<Position, byte> customCosts)
         {
             Debug.Assert(game != null);
 
@@ -115,54 +105,55 @@ namespace Halite3.Hlt
             double log75 = Math.Log(ratio);
 
             // halite * 0.75^p == 13.33
-            double Potential(double halite) => Math.Log(extra / halite) / log75; // Trench
-            double minPotential = Potential(0.000001); // Else div-by-zero
+            double Potential(double halite) => Math.Log(extra / (maxHalite + 1 - halite)) / log75; // +1 else div-by-zero
+            double minPotential = Potential(0);
             double maxPotential = Potential(maxHalite);
 
             var cells = new byte[game.Map.Width * game.Map.Height];
+
+            SetCustomCosts(game, customCosts, cells, true);
+
             for (int y = 0; y < game.Map.Height; y++)
             {
                 for (int x = 0; x < game.Map.Width; x++)
                 {
-                    MapCell mapCell = game.Map[x, y];
-
-                    byte cost = MinCost; // 1
-                    if (mapCell.HasStructure)
+                    int ix = y * game.Map.Width + x;
+                    if (cells[ix] != Wall) // We used wall as a placeholder
                     {
-                        if (mapCell.Structure.Owner == game.MyId)
-                        {
-                            cost = myDrop;
-                        }
-                        else
-                        {
-                            cost = theirDrop;
-                        }
-                    }
-                    else
-                    {
-                        double h1 = mapCell.Halite;
+                        double h1 = game.Map[x, y].Halite;
                         double h2 = Math.Max(1, h1); // Else div-by-zero
 
-                        // Normalize the amount of halite, with growth towards peaks
-                        // being exponential instead of linear
+                        // Normalize the amount of halite, with exponential growth towards peaks
                         double potential = Potential(h2);
                         double h3 = (potential - minPotential) / (maxPotential - minPotential); // 0..1
-                        double h4 = h3 * (MaxCost - MinCost); // 0..253
+                        double h4 = h3 * (Peak - Valley); // 0..253
                         double h5 = h4 + 1; // 1..254
 
-                        double halite = h5;
+                        double halite = byte.MaxValue - h5; // 254..1
 
-                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"HOME {h1}, {h2}, {h3}, {h4}, {halite}, {minPotential}, {potential}, {maxPotential}");
+                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"MINE {h1}, {h2}, {h3}, {h4}, {halite}, {minPotential}, {potential}, {maxPotential}");
 
-                        cost = (byte)halite;
+                        cells[ix] = (byte)halite;
                     }
-
-                    cells[y * game.Map.Width + x] = cost;
                 }
             }
 
+            SetCustomCosts(game, customCosts, cells, false);
+
             var field = new CostField(game.Map.Width, game.Map.Height, cells);
             return field;
+        }
+
+        private static void SetCustomCosts(Game game, IReadOnlyDictionary<Position, byte> customCosts, byte[] cells, bool isPlaceholder)
+        {
+            if (customCosts != null)
+            {
+                foreach (KeyValuePair<Position, byte> kvp in customCosts)
+                {
+                    int ix = Position.ToIndex(kvp.Key.X, kvp.Key.Y, game.Map.Width, game.Map.Height);
+                    cells[ix] = isPlaceholder ? Wall : kvp.Value; // Use wall as a placeholder
+                }
+            }
         }
     }
 }

@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Text;
 
 namespace Halite3
@@ -44,6 +45,9 @@ namespace Halite3
                     game.UpdateFrame();
                     int turnsRemaining = Constants.MaxTurns - game.TurnNumber;
 
+                    // Update custom costs
+                    var customCosts = GetCustomCosts(game);
+
                     var commandQueue = new List<Command>();
 
                     var requests = new Dictionary<EntityId, ShipRequest>(game.Me.Ships.Count);
@@ -52,15 +56,16 @@ namespace Halite3
                         (_, maxHalite, _, _) = game.Map.GetHaliteStatistics();
 
                         var goalMine = game.Map.GetRichestLocalSquare(ship.Position, game.Map.Width / 8 + ship.Id.Id % 3);
-                        var costMine = CostField.CreateMine(game, maxHalite, CostField.MaxCost, CostField.WallCost);
+
+                        var costMine = CostField.CreateMine(game, maxHalite, customCosts.MineCosts);
                         var waveMine = new WaveField(costMine, goalMine.Position);
                         var flowMine = new FlowField(waveMine);
                         //LogFields(game.Map, "MINE", costMine, waveMine, flowMine);
 
-                        var costHome = CostField.CreateHome(game, maxHalite, CostField.MinCost, CostField.WallCost);
+                        var costHome = CostField.CreateHome(game, maxHalite, customCosts.HomeCosts);
                         var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
                         var flowHome = new FlowField(waveHome);
-                        LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
+                        //LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
 
                         if (!states.TryGetValue(ship.Id, out ShipState status))
                         {
@@ -335,6 +340,40 @@ namespace Halite3
                     Game.EndTurn(commandQueue);
                 }
             }
+        }
+
+        private static (IReadOnlyDictionary<Position, byte> MineCosts, IReadOnlyDictionary<Position, byte> HomeCosts) GetCustomCosts(Game game)
+        {
+            var mineCosts = new Dictionary<Position, byte>
+            {
+                [game.Me.Shipyard.Position] = CostField.Peak
+            };
+
+            var homeCosts = new Dictionary<Position, byte>
+            {
+                [game.Me.Shipyard.Position] = CostField.Valley
+            };
+
+            foreach (Position pos in game.Me.Dropoffs.Select(n => n.Value.Position))
+            {
+                mineCosts.Add(pos, CostField.Wall);
+                homeCosts.Add(pos, CostField.Valley);
+            }
+
+            IEnumerable<Player> players = game.Players.Where(n => n.Id != game.MyId);
+            foreach (Position pos in players.Select(n => n.Shipyard.Position))
+            {
+                mineCosts.Add(pos, CostField.Wall);
+                homeCosts.Add(pos, CostField.Wall);
+            }
+
+            foreach (Position pos in players.SelectMany(n => n.Dropoffs).Select(n => n.Value.Position))
+            {
+                mineCosts.Add(pos, CostField.Wall);
+                homeCosts.Add(pos, CostField.Wall);
+            }
+
+            return (mineCosts, homeCosts);
         }
 
         private static bool IsWorthMining(int mine, int ship)
