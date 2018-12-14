@@ -44,7 +44,7 @@ namespace Halite3.Hlt
             _cells = cells;
         }
 
-        public static CostField CreateMine(Game game, int maxHalite, IReadOnlyDictionary<Position, byte> customCosts)
+        public static CostField CreateMine(Game game, int maxHalite, IDictionary<Position, byte> customCosts)
         {
             Debug.Assert(game != null);
 
@@ -54,10 +54,13 @@ namespace Halite3.Hlt
             double extra = Constants.MoveCostRatio / ratio; // 13.33
             double log75 = Math.Log(ratio);
 
-            // halite * 0.75^p == 13.33
-            double Potential(double halite) => Math.Log(extra / (maxHalite + 1 - halite)) / log75; // +1 else div-by-zero
+            // Normalize the amount of halite, with exponential growth towards peaks
+            // halite * 0.75^p == 13.33, so p = Log(13.33 / halite) / Log(0.75)
+            double Potential(double halite) => Math.Log(extra / (maxHalite + 50 - halite)) / log75; // +1 else div-by-zero
+
             double minPotential = Potential(0);
             double maxPotential = Potential(maxHalite);
+            double potentialRange = maxPotential - minPotential;
 
             var cells = new byte[game.Map.Width * game.Map.Height];
 
@@ -68,22 +71,28 @@ namespace Halite3.Hlt
                 for (int x = 0; x < game.Map.Width; x++)
                 {
                     int ix = y * game.Map.Width + x;
-                    if (cells[ix] != Wall) // We used wall as a placeholder
+                    if (cells[ix] != Wall) // Skip placeholders
                     {
                         double h1 = game.Map[x, y].Halite;
-                        double h2 = Math.Max(1, h1); // Else div-by-zero
 
-                        // Normalize the amount of halite, with exponential growth towards peaks
-                        double potential = Potential(h2);
-                        double h3 = (potential - minPotential) / (maxPotential - minPotential); // 0..1
-                        double h4 = h3 * (Peak - Valley); // 0..253
-                        double h5 = h4 + 1; // 1..254
+                        // Normalize
+                        double potential = Potential(h1);
 
-                        double halite = byte.MaxValue - h5; // 254..1
+                        // Scale to 0..1
+                        double h2 = (potential - minPotential) / potentialRange;
 
-                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"MINE {h1}, {h2}, {h3}, {h4}, {halite}, {minPotential}, {potential}, {maxPotential}");
+                        // Scale to 0..253
+                        double h3 = h2 * (Peak - Valley);
 
-                        cells[ix] = (byte)halite;
+                        // Shift to 1..254
+                        double h4 = h3 + 1;
+
+                        // Invert since we want rich valleys. So 1->254, 254->1
+                        byte halite = (byte)(byte.MaxValue - h4);
+
+                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"MINE {h1}, {h2}, {h3}, _{halite}_, {minPotential}, {potential}, {maxPotential}");
+
+                        cells[ix] = halite;
                     }
                 }
             }
@@ -94,7 +103,7 @@ namespace Halite3.Hlt
             return field;
         }
 
-        public static CostField CreateHome(Game game, int maxHalite, IReadOnlyDictionary<Position, byte> customCosts)
+        public static CostField CreateHome(Game game, int maxHalite, IDictionary<Position, byte> customCosts)
         {
             Debug.Assert(game != null);
 
@@ -104,10 +113,13 @@ namespace Halite3.Hlt
             double extra = Constants.MoveCostRatio / ratio; // 13.33
             double log75 = Math.Log(ratio);
 
-            // halite * 0.75^p == 13.33
-            double Potential(double halite) => Math.Log(extra / (maxHalite + 1 - halite)) / log75; // +1 else div-by-zero
             double minPotential = Potential(0);
             double maxPotential = Potential(maxHalite);
+            double potentialRange = maxPotential - minPotential;
+
+            // Normalize the amount of halite, with exponential growth towards peaks
+            // halite * 0.75^p == 13.33, so p = Log(13.33 / halite) / Log(0.75)
+            double Potential(double halite) => Math.Log(extra / (maxHalite + 50 - halite)) / log75; // +1 else div-by-zero
 
             var cells = new byte[game.Map.Width * game.Map.Height];
 
@@ -118,22 +130,28 @@ namespace Halite3.Hlt
                 for (int x = 0; x < game.Map.Width; x++)
                 {
                     int ix = y * game.Map.Width + x;
-                    if (cells[ix] != Wall) // We used wall as a placeholder
+                    if (cells[ix] != Wall) // Skip placeholders
                     {
                         double h1 = game.Map[x, y].Halite;
-                        double h2 = Math.Max(1, h1); // Else div-by-zero
 
-                        // Normalize the amount of halite, with exponential growth towards peaks
-                        double potential = Potential(h2);
-                        double h3 = (potential - minPotential) / (maxPotential - minPotential); // 0..1
-                        double h4 = h3 * (Peak - Valley); // 0..253
-                        double h5 = h4 + 1; // 1..254
+                        // Normalize
+                        double potential = Potential(h1);
 
-                        double halite = byte.MaxValue - h5; // 254..1
+                        // Scale to 0..1
+                        double h2 = (potential - minPotential) / potentialRange;
 
-                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"MINE {h1}, {h2}, {h3}, {h4}, {halite}, {minPotential}, {potential}, {maxPotential}");
+                        // Scale to 0..253
+                        double h3 = h2 * (Peak - Valley);
 
-                        cells[ix] = (byte)halite;
+                        // Shift to 1..254
+                        double h4 = h3 + 1;
+
+                        // Invert since we want rich valleys. So 1->254, 254->1
+                        byte halite = (byte)(byte.MaxValue - h4);
+
+                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"MINE {h1}, {h2}, {h3}, _{halite}_, {minPotential}, {potential}, {maxPotential}");
+
+                        cells[ix] = halite;
                     }
                 }
             }
@@ -144,7 +162,7 @@ namespace Halite3.Hlt
             return field;
         }
 
-        private static void SetCustomCosts(Game game, IReadOnlyDictionary<Position, byte> customCosts, byte[] cells, bool isPlaceholder)
+        private static void SetCustomCosts(Game game, IDictionary<Position, byte> customCosts, byte[] cells, bool isPlaceholder)
         {
             if (customCosts != null)
             {

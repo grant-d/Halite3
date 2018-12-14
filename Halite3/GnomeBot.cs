@@ -40,16 +40,18 @@ namespace Halite3
                 int maxBuildTurn = Constants.MaxTurns * 8 / 10;
                 var states = new Dictionary<EntityId, ShipState>(maxShips);
 
+                // Set static custom costs
+                (IDictionary<Position, byte> mineCosts, IDictionary<Position, byte> homeCosts) = SetCustomCosts(game);
+
                 while (true)
                 {
                     game.UpdateFrame();
                     int turnsRemaining = Constants.MaxTurns - game.TurnNumber;
 
-                    // Update custom costs
-                    var customCosts = GetCustomCosts(game);
+                    // Some data may change so update it iteratively throughout gameplay
+                    UpdateCustomCosts(game, mineCosts, homeCosts);
 
                     var commandQueue = new List<Command>();
-
                     var requests = new Dictionary<EntityId, ShipRequest>(game.Me.Ships.Count);
                     foreach (Ship ship in game.Me.Ships.Values)
                     {
@@ -57,15 +59,15 @@ namespace Halite3
 
                         var goalMine = game.Map.GetRichestLocalSquare(ship.Position, game.Map.Width / 8 + ship.Id.Id % 3);
 
-                        var costMine = CostField.CreateMine(game, maxHalite, customCosts.MineCosts);
+                        var costMine = CostField.CreateMine(game, maxHalite, mineCosts);
                         var waveMine = new WaveField(costMine, goalMine.Position);
                         var flowMine = new FlowField(waveMine);
-                        //LogFields(game.Map, "MINE", costMine, waveMine, flowMine);
+                        LogFields(game.Map, "MINE", costMine, waveMine, flowMine);
 
-                        var costHome = CostField.CreateHome(game, maxHalite, customCosts.HomeCosts);
+                        var costHome = CostField.CreateHome(game, maxHalite, homeCosts);
                         var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
                         var flowHome = new FlowField(waveHome);
-                        //LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
+                        LogFields(game.Map, "HOME", costHome, waveHome, flowHome);
 
                         if (!states.TryGetValue(ship.Id, out ShipState status))
                         {
@@ -96,7 +98,7 @@ namespace Halite3
                                     if (ship.IsFull)
                                     {
                                         Log.Message($"{ship} is full; returning");
-                                        goto case ShipState.Returning;
+                                        goto case ShipState.Homing;
                                     }
 
                                     // If ship is on a drop
@@ -158,7 +160,7 @@ namespace Halite3
                                     else if (ship.Halite > 0.97 * Constants.MaxHalite)
                                     {
                                         Log.Message($"{ship} is full; returning");
-                                        goto case ShipState.Returning;
+                                        goto case ShipState.Homing;
                                     }
 
                                     // Queue the request
@@ -167,9 +169,9 @@ namespace Halite3
                                 }
                                 break;
 
-                            case ShipState.Returning:
+                            case ShipState.Homing:
                                 {
-                                    states[ship.Id] = ShipState.Returning;
+                                    states[ship.Id] = ShipState.Homing;
                                     Log.Message($"Analyzing {ship} in Returning");
 
                                     // If ship is on the drop, go mine
@@ -184,7 +186,7 @@ namespace Halite3
                                     {
                                         Log.Message($"{ship} is next to drop");
                                         // Queue the request
-                                        requests[ship.Id] = new ShipRequest(ShipState.Returning, drop);
+                                        requests[ship.Id] = new ShipRequest(ShipState.Homing, drop);
                                         continue;
                                     }
 
@@ -194,7 +196,7 @@ namespace Halite3
 
                                     // Queue the request
                                     Position target = flowDir.FromPosition(ship.Position);
-                                    requests[ship.Id] = new ShipRequest(ShipState.Returning, target);
+                                    requests[ship.Id] = new ShipRequest(ShipState.Homing, target);
                                     Log.Message($"{ship} is returning to {target}");
                                 }
                                 break;
@@ -342,38 +344,67 @@ namespace Halite3
             }
         }
 
-        private static (IReadOnlyDictionary<Position, byte> MineCosts, IReadOnlyDictionary<Position, byte> HomeCosts) GetCustomCosts(Game game)
+        private static (IDictionary<Position, byte> MineCosts, IDictionary<Position, byte> HomeCosts) SetCustomCosts(Game game)
         {
-            var mineCosts = new Dictionary<Position, byte>
-            {
-                [game.Me.Shipyard.Position] = CostField.Peak
-            };
+            // Each cell in the cost field is represented by a single byte that will normally be set to some value in between 1 and 255.
+            // By default all cells are set to a value of 1.
+            // Any values between 2 and 254 represent cells that are passable but should be avoided if possible.
+            // The value 255 represents impassable walls that units must path around.
 
-            var homeCosts = new Dictionary<Position, byte>
-            {
-                [game.Me.Shipyard.Position] = CostField.Valley
-            };
+            var mineCosts = new Dictionary<Position, byte>();
+            var homeCosts = new Dictionary<Position, byte>();
 
-            foreach (Position pos in game.Me.Dropoffs.Select(n => n.Value.Position))
+            // My shipyard
             {
+                Position pos = game.Me.Shipyard.Position;
+
+                // When mining, don't attract ships to my shipyard
+                // But don't affect the halite countour
                 mineCosts.Add(pos, CostField.Wall);
+
+                // When homing, attract ships towards my shipyard
                 homeCosts.Add(pos, CostField.Valley);
             }
 
+            // Their shipyards
             IEnumerable<Player> players = game.Players.Where(n => n.Id != game.MyId);
             foreach (Position pos in players.Select(n => n.Shipyard.Position))
             {
+                // When mining, don't crash into their shipyard ships
+                // But don't affect the halite countour
                 mineCosts.Add(pos, CostField.Wall);
-                homeCosts.Add(pos, CostField.Wall);
-            }
 
-            foreach (Position pos in players.SelectMany(n => n.Dropoffs).Select(n => n.Value.Position))
-            {
-                mineCosts.Add(pos, CostField.Wall);
-                homeCosts.Add(pos, CostField.Wall);
+                // When homing, accentuate my valleys and avoid collisions
+                homeCosts.Add(pos, CostField.Peak);
             }
 
             return (mineCosts, homeCosts);
+        }
+
+        private static void UpdateCustomCosts(Game game, IDictionary<Position, byte> mineCosts, IDictionary<Position, byte> homeCosts)
+        {
+            // My dropoffs
+            foreach (Position pos in game.Me.Dropoffs.Select(n => n.Value.Position))
+            {
+                // When mining, don't attract ships to my dropoffs
+                // But don't affect the halite countour
+                mineCosts[pos] = CostField.Wall;
+
+                // When homing, attract ships towards my dropoffs
+                homeCosts[pos] = CostField.Valley;
+            }
+
+            // Their dropoffs
+            IEnumerable<Player> players = game.Players.Where(n => n.Id != game.MyId);
+            foreach (Position pos in players.SelectMany(n => n.Dropoffs).Select(n => n.Value.Position))
+            {
+                // When mining, don't crash into their dropoff ships
+                // But don't affect the halite countour
+                mineCosts[pos] = CostField.Wall;
+
+                // When homing, accentuate my valleys and avoid collisions
+                homeCosts[pos] = CostField.Peak;
+            }
         }
 
         private static bool IsWorthMining(int mine, int ship)
@@ -406,7 +437,7 @@ namespace Halite3
 
             var sb = new StringBuilder();
 
-            Log.Message("MAP FIELD " + title);
+            Log.Message($"{title}: MAP");
             ShowColNos();
             for (int y = 0; y < map.Height; y++)
             {
@@ -424,7 +455,7 @@ namespace Halite3
 
             if (costField != null)
             {
-                Log.Message("COST FIELD " + title);
+                Log.Message($"{title}: COST");
                 ShowColNos();
                 for (int y = 0; y < costField.Height; y++)
                 {
@@ -443,7 +474,7 @@ namespace Halite3
 
             if (waveField != null)
             {
-                Log.Message("WAVE FIELD " + title);
+                Log.Message($"{title}: WAVE");
                 ShowColNos();
                 for (int y = 0; y < waveField.Height; y++)
                 {
@@ -462,7 +493,7 @@ namespace Halite3
 
             if (flowField != null)
             {
-                Log.Message("FLOW FIELD " + title);
+                Log.Message($"{title}: FLOW");
                 ShowColNos();
                 for (int y = 0; y < flowField.Height; y++)
                 {
@@ -492,7 +523,7 @@ namespace Halite3
     public enum ShipState
     {
         Mining,
-        Returning,
+        Homing,
         //Converting,
         //Inspired,
         Ending
