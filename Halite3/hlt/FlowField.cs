@@ -22,7 +22,7 @@ namespace Halite3.Hlt
             }
         }
 
-        public FlowField(WaveField waveField, bool invert)
+        public FlowField(WaveField waveField)
         {
             Debug.Assert(waveField != null);
 
@@ -44,9 +44,6 @@ namespace Halite3.Hlt
                     Check(FlowDirection.E);
                     Check(FlowDirection.S);
                     Check(FlowDirection.W);
-
-                    if (invert)
-                        direction = direction.Invert();
 
                     _cells[y * Width + x] = new FlowCell(direction);
 

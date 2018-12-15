@@ -11,7 +11,7 @@ namespace Halite3
     public sealed class GnomeBot
     {
         private const double CostFactor = 1.0;
-        private const double EndFactor = 1.2;
+        private const double EndFactor = 1.25;
 
         public static void Main(string[] args)
         {
@@ -56,7 +56,7 @@ namespace Halite3
 
                     var costHome = CostField.CreateHome(game, maxHalite, homeCosts);
                     var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
-                    var flowHome = new FlowField(waveHome, false);
+                    var flowHome = new FlowField(waveHome);
                     //LogFields(game, "HOME", costHome, waveHome, flowHome);
 
                     var requests = new Dictionary<EntityId, ShipRequest>(game.Me.Ships.Count);
@@ -66,7 +66,7 @@ namespace Halite3
 
                         var costMine = CostField.CreateMine(game, maxHalite, mineCosts);
                         var waveMine = new WaveField(costMine, ship.Position);
-                        var flowMine = new FlowField(waveMine, false);
+                        var flowMine = new FlowField(waveMine);
                         //LogFields(game, "MINE", costMine, waveMine, flowMine);
 
                         if (!states.TryGetValue(ship.Id, out ShipState status))
