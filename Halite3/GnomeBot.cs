@@ -46,6 +46,14 @@ namespace Halite3
                 int maxBuildTurn = Constants.MaxTurns * 8 / 10;
                 var states = new Dictionary<EntityId, ShipState>(maxShips);
 
+                var shipyards = game.Players.Select(n => n.Shipyard.Position);
+                var minX = shipyards.Min(n => n.X);
+                var maxX = shipyards.Max(n => n.X);
+                var minY = shipyards.Min(n => n.Y);
+                var maxY = shipyards.Max(n => n.Y);
+                var radius = (int)Math.Sqrt(Math.Pow(maxX - minX, 2) + Math.Pow(maxY - minY, 2)) / 5 + 1;
+                Log.Message($"Players={game.Players.Count}, Radius={radius}");
+
                 // Set static custom costs
                 (IReadOnlyDictionary<Position, byte> mineBaseCosts, IReadOnlyDictionary<Position, byte> homeBaseCosts) = SetCustomCosts(game);
 
@@ -69,8 +77,9 @@ namespace Halite3
                     {
                         Log.Message($"------- FLOURINE TURN {game.TurnNumber - 1} ------- ");
 
+                        var goalMine = game.Map.GetRichestLocalSquare(ship.Position, radius);
                         var costMine = CostField.CreateMine(game, maxHalite, mineCosts);
-                        var waveMine = new WaveField(costMine, ship.Position);
+                        var waveMine = new WaveField(costMine, goalMine.Position);
                         var flowMine = new FlowField(waveMine);
                         //LogFields(game, "MINE", costMine, waveMine, flowMine);
 
@@ -237,7 +246,7 @@ namespace Halite3
                                 Position target = new Direction[] { dir1, dir2 }
                                     .Select(d => ship2.Position.DirectionalOffset(d))
                                     .Except(requests.Where(n => n.Key != kvp2.Key).Select(n => n.Value.Target))
-                                    .OrderBy(_ => rng.NextDouble())
+                                    //.OrderBy(_ => rng.NextDouble())
                                     .FirstOrDefault();
 
                                 if (target == default)
@@ -245,7 +254,7 @@ namespace Halite3
                                     target = DirectionExtensions.NSEW
                                         .Select(d => ship2.Position.DirectionalOffset(d))
                                         .Except(requests.Where(n => n.Key != kvp2.Key).Select(n => n.Value.Target))
-                                        .OrderBy(_ => rng.NextDouble())
+                                        //.OrderBy(_ => rng.NextDouble())
                                         .FirstOrDefault();
                                 }
 
@@ -263,7 +272,7 @@ namespace Halite3
                                 Position target = DirectionExtensions.NSEW
                                     .Select(d => ship2.Position.DirectionalOffset(d))
                                     .Except(requests.Where(n => n.Key != kvp2.Key).Select(n => n.Value.Target))
-                                    .OrderBy(_ => rng.NextDouble())
+                                    //.OrderBy(_ => rng.NextDouble())
                                     .FirstOrDefault();
 
                                 Direction dir = target == default ? Direction.Stay : game.Map.NaiveNavigate(ship2, target);
