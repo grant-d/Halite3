@@ -126,7 +126,7 @@ namespace Halite3.Hlt
                 }
             }
 
-            return Direction.Still;
+            return Direction.Stay;
         }
 
         /// <summary>

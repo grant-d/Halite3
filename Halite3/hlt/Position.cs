@@ -91,7 +91,7 @@ namespace Halite3.Hlt
                     break;
 
                 default:
-                case Direction.Still:
+                case Direction.Stay:
                     dx = 0;
                     dy = 0;
                     break;

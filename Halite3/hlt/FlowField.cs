@@ -67,5 +67,12 @@ namespace Halite3.Hlt
                 }
             }
         }
+
+        public Position GetTarget(Position origin)
+        {
+            FlowCell flow = _cells[origin.Y * Width + origin.X];
+            Position target = flow.Direction.FromPosition(origin);
+            return target;
+        }
     }
 }

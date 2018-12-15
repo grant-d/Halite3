@@ -10,7 +10,7 @@ namespace Halite3.Hlt
     /// <see cref="https://halite.io/learn-programming-challenge/api-docs#direction"/>
     public enum Direction
     {
-        Still = 'o',
+        Stay = 'o',
 
         North = 'n',
         East = 'e',
@@ -37,7 +37,7 @@ namespace Halite3.Hlt
                 case Direction.West: return Direction.East;
 
                 default:
-                case Direction.Still: return Direction.Still;
+                case Direction.Stay: return Direction.Stay;
             }
         }
     }

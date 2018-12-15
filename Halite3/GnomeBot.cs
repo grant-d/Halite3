@@ -88,10 +88,6 @@ namespace Halite3
                                 {
                                     states[ship.Id] = ShipState.Mining;
 
-                                    FlowCell flow = flowMine[ship.Position.X, ship.Position.Y];
-                                    FlowDirection flowDir = flow.Direction;
-                                    Position target = flowDir.FromPosition(ship.Position);
-
                                     // If ship is full, go back to base
                                     if (ship.IsFull)
                                     {
@@ -99,63 +95,37 @@ namespace Halite3
                                         goto case ShipState.Homing;
                                     }
 
-                                    // If ship is on a drop
+                                    Position target = flowMine.GetTarget(ship.Position);
+
+                                    // If ship is on a drop, find richest neighbor
                                     if (game.IsOnDrop(ship.Position))
                                     {
                                         Log.Message($"{ship} is on drop");
 
-                                        if (!game.Map[target.X, target.Y].IsEmpty)
+                                        int best = -1;
+                                        foreach (Direction dir in DirectionExtensions.NSEW)
                                         {
-                                            Log.Message($"{ship} has non-empty target {target}");
+                                            // Don't check if empty; we will resolve that later
+                                            Position pos = ship.Position.DirectionalOffset(dir);
+                                            Position tgt = flowMine.GetTarget(pos);
+                                            IsWorthStaying(game.Map, pos, ship.Halite, tgt, out _, out int leave);
 
-                                            // Move in the direction with the maximum halite
-                                            int halite = 0;
-                                            foreach (Direction dir1 in DirectionExtensions.NSEW)
+                                            if (leave >= best)
                                             {
-                                                Position p = ship.Position.DirectionalOffset(dir1);
-                                                int h = game.Map[p.X, p.Y].Halite;
-                                                if (h > halite)
-                                                {
-                                                    halite = h;
-                                                    target = ship.Position.DirectionalOffset(dir1);
-                                                    Log.Message($"{ship} has max target {target}");
-                                                }
-                                            }
-
-                                            // If no halite available, move in any empty direction
-                                            if (target == ship.Position)
-                                            {
-                                                foreach (Direction dir1 in DirectionExtensions.NSEW)
-                                                {
-                                                    Position p = ship.Position.DirectionalOffset(dir1);
-                                                    if (game.Map[p.X, p.Y].IsEmpty)
-                                                    {
-                                                        target = ship.Position.DirectionalOffset(dir1);
-                                                        Log.Message($"{ship} has empty target {target}");
-                                                        break;
-                                                    }
-                                                }
+                                                best = leave;
+                                                target = pos;
                                             }
                                         }
-
-                                        // Queue the request
-                                        requests[ship.Id] = new ShipRequest(ShipState.Mining, target);
-                                        Log.Message($"{ship} has flow target {target}");
-                                        //if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
-                                        continue;
                                     }
 
-                                    // If current mine is not depleted
-                                    if (IsWorthStaying(game.Map, ship, target, out _, out _))
+                                    // If current mine is not depleted, stay
+                                    else if (IsWorthStaying(game.Map, ship, target, out _, out _))
                                     {
-                                        states[ship.Id] = ShipState.Mining;
-
-                                        // Stay in same mine
                                         Log.Message($"{ship} is staying");
                                         requests[ship.Id] = new ShipRequest(ShipState.Mining, ship.Position);
-                                        //if (!game.IsOnDrop(target)) { mineCosts[ship.Position] = CostField.Wall; homeCosts[ship.Position] = CostField.Wall; }
                                         continue;
                                     }
+
                                     // If mine is depleted, but ship is nearly full
                                     else if (ship.Halite > 0.97 * Constants.MaxHalite)
                                     {
@@ -177,8 +147,7 @@ namespace Halite3
 
                                     states[ship.Id] = ShipState.Homing;
 
-                                    FlowCell flow = flowHome[ship.Position.X, ship.Position.Y];
-                                    Position target = flow.Direction.FromPosition(ship.Position);
+                                    Position target = flowHome.GetTarget(ship.Position);
                                     requests[ship.Id] = new ShipRequest(ShipState.Homing, target);
                                     //if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                 }
@@ -188,8 +157,7 @@ namespace Halite3
                                 {
                                     states[ship.Id] = ShipState.Ending;
 
-                                    FlowCell flow = flowHome[ship.Position.X, ship.Position.Y];
-                                    Position target = flow.Direction.FromPosition(ship.Position);
+                                    Position target = flowHome.GetTarget(ship.Position);
                                     requests[ship.Id] = new ShipRequest(ShipState.Ending, target);
                                     //if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                 }
