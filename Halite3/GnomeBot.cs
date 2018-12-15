@@ -97,29 +97,8 @@ namespace Halite3
 
                                     Position target = flowMine.GetTarget(ship.Position);
 
-                                    // If ship is on a drop, find richest neighbor
-                                    if (game.IsOnDrop(ship.Position))
-                                    {
-                                        Log.Message($"{ship} is on drop");
-
-                                        int best = -1;
-                                        foreach (Direction dir in DirectionExtensions.NSEW)
-                                        {
-                                            // Don't check if empty; we will resolve that later
-                                            Position pos = ship.Position.DirectionalOffset(dir);
-                                            Position tgt = flowMine.GetTarget(pos);
-                                            IsWorthStaying(game.Map, pos, ship.Halite, tgt, out _, out int leave);
-
-                                            if (leave >= best)
-                                            {
-                                                best = leave;
-                                                target = pos;
-                                            }
-                                        }
-                                    }
-
                                     // If current mine is not depleted, stay
-                                    else if (IsWorthStaying(game.Map, ship, target, out _, out _))
+                                    if (IsWorthStaying(game.Map, ship, target, out _, out _))
                                     {
                                         Log.Message($"{ship} is staying");
                                         requests[ship.Id] = new ShipRequest(ShipState.Mining, ship.Position);
@@ -129,27 +108,28 @@ namespace Halite3
                                     // If mine is depleted, but ship is nearly full
                                     else if (ship.Halite > 0.97 * Constants.MaxHalite)
                                     {
-                                        Log.Message($"{ship} is full; returning");
+                                        Log.Message($"{ship} is nearly full");
                                         goto case ShipState.Homing;
                                     }
 
                                     // Queue the request
                                     Log.Message($"{ship} has target {target}");
                                     requests[ship.Id] = new ShipRequest(ShipState.Mining, target);
-                                    //if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                 }
                                 break;
 
                             case ShipState.Homing:
                                 {
                                     if (game.IsOnDrop(ship.Position))
+                                    {
+                                        Log.Message($"{ship} is emptied");
                                         goto case ShipState.Mining;
+                                    }
 
                                     states[ship.Id] = ShipState.Homing;
 
                                     Position target = flowHome.GetTarget(ship.Position);
                                     requests[ship.Id] = new ShipRequest(ShipState.Homing, target);
-                                    //if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                 }
                                 break;
 
@@ -159,7 +139,6 @@ namespace Halite3
 
                                     Position target = flowHome.GetTarget(ship.Position);
                                     requests[ship.Id] = new ShipRequest(ShipState.Ending, target);
-                                    //if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                 }
                                 break;
                         }
@@ -213,50 +192,44 @@ namespace Halite3
                             // Wiggle needed
                             if (target2 == ship1.Position)
                             {
-                                Position pos1, pos2;
-                                if (ship1.Position.Y != ship2.Position.Y)
+                                Direction dir1, dir2;
+                                if (ship1.Position.X == ship2.Position.X)
                                 {
-                                    pos1 = ship2.Position.DirectionalOffset(Direction.West);
-                                    pos2 = ship2.Position.DirectionalOffset(Direction.East);
+                                    dir1 = Direction.North;
+                                    dir2 = Direction.South;
                                 }
                                 else
                                 {
-                                    pos1 = ship2.Position.DirectionalOffset(Direction.North);
-                                    pos2 = ship2.Position.DirectionalOffset(Direction.South);
+                                    dir1 = Direction.West;
+                                    dir2 = Direction.East;
                                 }
 
-                                Position target = target2;
+                                Position target = new Direction[] { dir1, dir2 }
+                                    .Select(d => ship2.Position.DirectionalOffset(d))
+                                    .Except(requests.Where(n => n.Key != kvp2.Key).Select(n => n.Value.Target))
+                                    .FirstOrDefault();
 
-                                int best = 0;
-                                MapCell cell = game.Map[pos1.X, pos1.Y];
-                                if (cell.IsEmpty)
-                                {
-                                    target = pos1;
-                                    best = cell.Halite;
-                                }
+                                Direction dir = target == default ? Direction.Stay : game.Map.NaiveNavigate(ship2, target);
+                                commandDict[ship2.Id] = Command.Move(ship2.Id, dir);
+                                done[kvp2.Key] = true;
 
-                                cell = game.Map[pos2.X, pos2.Y];
-                                if (cell.IsEmpty
-                                    && cell.Halite > best)
-                                    target = pos2;
-
-                                if (target != target2)
-                                {
-                                    Direction dir = game.Map.NaiveNavigate(ship2, target);
-                                    commandDict[ship2.Id] = Command.Move(ship2.Id, dir);
-                                    done[kvp2.Key] = true;
-
-                                    Log.Message($"Wiggled {ship2} from behind {ship1} to {target}");
-                                }
+                                Log.Message($"Wiggled {ship2} from behind {ship1} to {target}");
                                 continue;
                             }
 
-                            // More than 1 ship picked the same target
+                            // Avoid crash
                             if (target1 == target2)
                             {
-                                commandDict[ship2.Id] = ship2.Stay();
-                                Log.Message($"Stopped {ship2} so {ship1} can move to {target1}");
+                                Position target = DirectionExtensions.NSEW
+                                    .Select(d => ship2.Position.DirectionalOffset(d))
+                                    .Except(requests.Where(n => n.Key != kvp2.Key).Select(n => n.Value.Target))
+                                    .FirstOrDefault();
+
+                                Direction dir = target == default ? Direction.Stay : game.Map.NaiveNavigate(ship2, target);
+                                commandDict[ship2.Id] = Command.Move(ship2.Id, dir);
                                 done[kvp2.Key] = true;
+
+                                Log.Message($"Swerved {ship2} from {ship1} to {target}");
                                 continue;
                             }
                         }
