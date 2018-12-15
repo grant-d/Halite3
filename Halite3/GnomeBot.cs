@@ -33,7 +33,8 @@ namespace Halite3
 
                 double maxShips1 = game.Map.Height * game.Map.Width; // 32->1024, 40->1600, 48->2304, 56->3136, 64->4096
                 maxShips1 = maxShips1 / 160; // 32->6, 40->10, 48->13, 56->19, 64->27
-                int maxShips = (int)(maxShips1 + (40 * meanHalite * 2 / maxHalite)); // 32->12, 40->16, 48->19, 56->25, 64->33
+                maxShips1 = maxShips1 + (40 * meanHalite * 2 / maxHalite); // 32->12, 40->16, 48->19, 56->25, 64->33
+                int maxShips = (int)maxShips1;
                 Log.Message($"Ships={maxShips}");
 
                 int maxDropOffs = -1 + game.Map.Width / 20; // 32->0, 40->1, 48->1, 64->2
