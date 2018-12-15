@@ -10,8 +10,8 @@ namespace Halite3
 {
     public sealed class GnomeBot
     {
-        private const double CostFactor = 1.1;
-        private const double EndFactor = 1.333;
+        private const double CostFactor = 1.0;
+        private const double EndFactor = 1.2;
 
         public static void Main(string[] args)
         {
@@ -64,10 +64,8 @@ namespace Halite3
                     {
                         Log.Message($"------- FLOURINE TURN {game.TurnNumber - 1} ------- ");
 
-                        (Position Position, int Halite) goalMine = game.Map.GetRichestLocalSquare(ship.Position, game.Map.Width / 10 + ship.Id.Id % 3);
-
                         var costMine = CostField.CreateMine(game, maxHalite, mineCosts);
-                        var waveMine = new WaveField(costMine, goalMine.Position);
+                        var waveMine = new WaveField(costMine, ship.Position);
                         var flowMine = new FlowField(waveMine, false);
                         //LogFields(game, "MINE", costMine, waveMine, flowMine);
 
@@ -77,7 +75,7 @@ namespace Halite3
                         }
 
                         (Position Position, int Distance) closestBase = game.GetClosestDrop(ship);
-                        if (turnsRemaining <= (closestBase.Distance + game.Me.Ships.Count) * EndFactor)
+                        if (turnsRemaining - game.Me.Ships.Count - 1 <= closestBase.Distance * EndFactor)
                         {
                             status = ShipState.Ending;
                         }
@@ -103,7 +101,7 @@ namespace Halite3
                                     {
                                         Log.Message($"{ship} is staying");
                                         requests[ship.Id] = new ShipRequest(ShipState.Mining, ship.Position);
-                                        continue;
+                                        break;
                                     }
 
                                     // If mine is depleted, but ship is nearly full, go back to base
@@ -138,6 +136,13 @@ namespace Halite3
                                 {
                                     states[ship.Id] = ShipState.Ending;
 
+                                    if (game.IsOnDrop(ship.Position))
+                                    {
+                                        Log.Message($"{ship} is home");
+                                        requests[ship.Id] = new ShipRequest(ShipState.Ending, ship.Position);
+                                        break;
+                                    }
+
                                     Position target = flowHome.GetTarget(ship.Position);
                                     Log.Message($"{ship} has target {target}");
                                     requests[ship.Id] = new ShipRequest(ShipState.Ending, target);
@@ -161,10 +166,14 @@ namespace Halite3
 
                         Ship ship1 = game.Me.Ships[kvp1.Key.Id];
                         Position target1 = kvp1.Value.Target;
+                        //Log.Message($"Resolving commands for {ship1}");
 
                         foreach (KeyValuePair<EntityId, ShipRequest> kvp2 in requests)
                         {
                             if (kvp1.Key == kvp2.Key)
+                                continue;
+
+                            if (done.TryGetValue(kvp1.Key, out isDone) && isDone)
                                 continue;
 
                             if (done.TryGetValue(kvp2.Key, out isDone) && isDone)
@@ -172,6 +181,7 @@ namespace Halite3
 
                             Ship ship2 = game.Me.Ships[kvp2.Key.Id];
                             Position target2 = kvp2.Value.Target;
+                            //Log.Message($"  Resolving commands for {ship2}");
 
                             // Swap needed
                             if (target1 == ship2.Position
@@ -194,6 +204,19 @@ namespace Halite3
                             // Wiggle needed
                             if (target2 == ship1.Position)
                             {
+                                if (kvp1.Value.State == ShipState.Ending
+                                    && game.IsOnDrop(ship1.Position))
+                                {
+                                    game.Map[target2.X, target2.Y].MarkSafe();
+                                    Direction dir3 = game.Map.NaiveNavigate(ship2, target2);
+                                    commandDict[ship2.Id] = Command.Move(ship2.Id, dir3);
+
+                                    Log.Message($"Ended {ship2} over {ship1}");
+                                    done[kvp1.Key] = true;
+                                    done[kvp2.Key] = true;
+                                    continue;
+                                }
+
                                 Direction dir1, dir2;
                                 if (ship1.Position.X == ship2.Position.X)
                                 {
@@ -253,7 +276,9 @@ namespace Halite3
 
                         Ship ship = game.Me.Ships[kvp.Key.Id];
                         Position target = kvp.Value.Target;
+                        Log.Message($"Transferring commands for {ship}");
 
+                        // If mining
                         if (ship.Position == target)
                         {
                             commandDict[ship.Id] = ship.Stay();
@@ -262,11 +287,19 @@ namespace Halite3
                         };
 
                         // If ship is next to the drop
-                        if (kvp.Value.State == ShipState.Ending
-                            && game.IsNextToDrop(ship.Position, out Position drop))
+                        if (game.IsNextToDrop(ship.Position, out Position drop))
                         {
-                            target = drop;
-                            game.Map[target.X, target.Y].MarkSafe();
+                            if (kvp.Value.State == ShipState.Homing
+                                || kvp.Value.State == ShipState.Ending)
+                            {
+                                target = drop;
+
+                                if (kvp.Value.State == ShipState.Ending)
+                                {
+                                    game.Map[target.X, target.Y].MarkSafe();
+                                    Log.Message($"Aiming {ship} at drop {target}");
+                                }
+                            }
                         }
 
                         Direction dir = game.Map.NaiveNavigate(ship, target);
