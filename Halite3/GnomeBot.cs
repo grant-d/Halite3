@@ -144,7 +144,7 @@ namespace Halite3
                                         // Queue the request
                                         requests[ship.Id] = new ShipRequest(ShipState.Mining, target);
                                         Log.Message($"{ship} has flow target {target}");
-                                        if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
+                                        //if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                         continue;
                                     }
 
@@ -156,7 +156,7 @@ namespace Halite3
                                         // Stay in same mine
                                         Log.Message($"{ship} is staying");
                                         requests[ship.Id] = new ShipRequest(ShipState.Mining, ship.Position);
-                                        if (!game.IsOnDrop(target)) { mineCosts[ship.Position] = CostField.Wall; homeCosts[ship.Position] = CostField.Wall; }
+                                        //if (!game.IsOnDrop(target)) { mineCosts[ship.Position] = CostField.Wall; homeCosts[ship.Position] = CostField.Wall; }
                                         continue;
                                     }
                                     // If mine is depleted, but ship is nearly full
@@ -169,7 +169,7 @@ namespace Halite3
                                     // Queue the request
                                     Log.Message($"{ship} has target {target}");
                                     requests[ship.Id] = new ShipRequest(ShipState.Mining, target);
-                                    if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
+                                    //if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                 }
                                 break;
 
@@ -202,7 +202,7 @@ namespace Halite3
                                     Position target = flowDir.FromPosition(ship.Position);
                                     requests[ship.Id] = new ShipRequest(ShipState.Homing, target);
                                     Log.Message($"{ship} is returning to {target}");
-                                    if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
+                                    //if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                 }
                                 break;
 
@@ -219,7 +219,7 @@ namespace Halite3
                                     Position target = flowDir.FromPosition(ship.Position);
                                     requests[ship.Id] = new ShipRequest(ShipState.Ending, target);
 
-                                    if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
+                                    //if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                 }
                                 break;
 
@@ -228,8 +228,11 @@ namespace Halite3
                     }
 
                     var commandDict = new Dictionary<EntityId, Command>();
+                    foreach (Ship ship in game.Me.Ships.Values)
+                    {
+                        commandDict[ship.Id] = ship.Stay();
+                    }
 
-                    /*
                     // Take care of swaps
                     var done = new Dictionary<EntityId, bool>();
                     foreach (KeyValuePair<EntityId, ShipRequest> kvp1 in requests)
@@ -266,7 +269,7 @@ namespace Halite3
                                 done[kvp2.Key] = true;
 
                                 Log.Message($"Swapped {ship1} and {ship2}");
-                                continue;
+                                break;
                             }
 
                             // Wiggle needed
@@ -313,39 +316,19 @@ namespace Halite3
                             // More than 1 ship picked the same target
                             if (target1 == target2)
                             {
-                                // If mine1 is richer than mine2
-                                if (game.Map[ship1.Position.X, ship1.Position.Y].Halite > game.Map[ship2.Position.X, ship2.Position.Y].Halite)
-                                {
-                                    // Move ship2
-                                    Direction dir = game.Map.NaiveNavigate(ship2, target2);
-                                    commandDict[ship2.Id] = Command.Move(ship2.Id, dir);
-                                    commandDict[ship1.Id] = ship1.Stay();
-
-                                    Log.Message($"Stopped {ship1} so {ship2} can move to {target2}");
-                                }
-                                else
-                                {
-                                    // Else move ship1
-                                    Direction dir = game.Map.NaiveNavigate(ship1, target1);
-                                    commandDict[ship1.Id] = Command.Move(ship1.Id, dir);
-                                    commandDict[ship2.Id] = ship2.Stay();
-
-                                    Log.Message($"Stopped {ship2} so {ship1} can move to {target1}");
-                                }
-
-                                done[kvp1.Key] = true;
+                                commandDict[ship2.Id] = ship2.Stay();
+                                Log.Message($"Stopped {ship2} so {ship1} can move to {target1}");
                                 done[kvp2.Key] = true;
                                 continue;
                             }
                         }
                     }
-                    */
 
                     // Transfer remaining requests to command queue
                     foreach (KeyValuePair<EntityId, ShipRequest> kvp in requests)
                     {
-                        //if (done.TryGetValue(kvp.Key, out bool isDone) && isDone)
-                        //    continue;
+                        if (done.TryGetValue(kvp.Key, out bool isDone) && isDone)
+                            continue;
 
                         Ship ship = game.Me.Ships[kvp.Key.Id];
                         Position target = kvp.Value.Target;
@@ -496,7 +479,7 @@ namespace Halite3
             double shipLeaveStay = shipLeave + Mine(mine);
             shipLeave = Math.Max(shipLeaveLeave, shipLeaveStay);
 
-            Log.Message($"OPPORT LOSS: {ship}, available={mine}, leave={shipLeave}, stay={shipStay}");
+            Log.Message($"OPPORT LOSS: {ship}, available={mine}, leave={shipLeave}, stay={shipStay}, target={target}");
 
             return shipStay >= shipLeave;
 

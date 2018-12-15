@@ -122,7 +122,7 @@ namespace Halite3.Hlt
             // Normalize the amount of halite, with exponential drop into canyons
             // halite * 0.75^p == 13.33, so p = Log(13.33 / halite) / Log(0.75)
             const double flattness = 940; // Higher is more flat. Must be > 0 else div-by-zero
-            double Potential(double halite) => Math.Log10(extra / (halite + flattness)) / log75;
+            double Potential(double halite) => halite;// Math.Log10(extra / (halite + flattness)) / log75;
 
             var cells = new byte[game.Map.Width * game.Map.Height];
 
