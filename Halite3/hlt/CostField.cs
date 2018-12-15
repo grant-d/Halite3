@@ -23,12 +23,6 @@ namespace Halite3.Hlt
                 int index = Position.ToIndex(x, y, Width, Height);
                 return _cells[index];
             }
-
-            private set
-            {
-                int index = Position.ToIndex(x, y, Width, Height);
-                _cells[index] = value;
-            }
         }
 
         private CostField(int width, int height, Byte[] cells)
