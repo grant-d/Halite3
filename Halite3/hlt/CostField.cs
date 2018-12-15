@@ -170,5 +170,40 @@ namespace Halite3.Hlt
                 }
             }
         }
+
+        public static CostField Compress(Game game, int xRadius, int yRadius)
+        {
+            Debug.Assert(game != null);
+            Debug.Assert(xRadius > 0);
+            Debug.Assert(yRadius > 0);
+
+            int xLen = xRadius * 2 + 1;
+            int yLen = yRadius * 2 + 1;
+
+            int width = 1 + game.Map.Width / xLen;
+            int height = 1 + game.Map.Height / yLen;
+
+            var cells = new byte[width * height];
+            var max = xLen * yLen * byte.MaxValue;
+
+            for (int x = xRadius, xx = 0; x < game.Map.Width; x += xLen, xx++)
+            {
+                for (int y = yRadius, yy = 0; y < game.Map.Height; y += yLen, yy++)
+                {
+                    int sum = 0;
+                    for (int x1 = x - xRadius; x1 < x + xRadius; x1++)
+                    {
+                        for (int y1 = y - yRadius; y1 < y + yRadius; y1++)
+                        {
+                            sum += game.Map[x1, y1].Halite;
+                        }
+                    }
+                    cells[yy * width + xx] = (byte)(byte.MaxValue * sum / max);
+                }
+            }
+
+            var field = new CostField(width, height, cells);
+            return field;
+        }
     }
 }
