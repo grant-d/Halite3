@@ -29,9 +29,6 @@ namespace Halite3
                 Game.Ready("MyCSharpBot");
                 Log.Message("Successfully created bot! My Player ID is " + game.MyId + ". Bot rng seed is " + rngSeed + ".");
 
-                (int minHalite, int maxHalite, int totalHalite, int meanHalite) = game.Map.GetHaliteStatistics();
-                Log.Message($"Min={minHalite}, Max={maxHalite}, Mean = {meanHalite}, Total={totalHalite}");
-
                 //double maxShips1 = game.Map.Height * game.Map.Width; // 32->1024, 40->1600, 48->2304, 56->3136, 64->4096
                 //maxShips1 = maxShips1 / 160; // 32->6, 40->10, 48->13, 56->19, 64->27
                 //double pf = game.Players.Count + 40.0 / game.Players.Count; // 2->22, 4->14
@@ -55,15 +52,18 @@ namespace Halite3
                     game.UpdateFrame();
                     int turnsRemaining = Constants.MaxTurns - game.TurnNumber;
 
-                    (_, maxHalite, _, _) = game.Map.GetHaliteStatistics();
-
                     // Some data may change so update it iteratively throughout gameplay
                     (IDictionary<Position, byte> mineCosts, IDictionary<Position, byte> homeCosts) = UpdateCustomCosts(game, mineBaseCosts, homeBaseCosts);
 
-                    var costHome = CostField.CreateHome(game, maxHalite, homeCosts);
+                    var costHome = CostField.CreateHome(game, homeCosts);
                     var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
                     var flowHome = new FlowField(waveHome);
                     //LogFields(game, "HOME", costHome, waveHome, flowHome);
+
+                    //var costRich = CostField.Compress(game.Map, game.Map.Width / 20, game.Map.Height / 20); // 32->1(3), 64->3(7)
+                    //var waveRich = new WaveField(costRich, new Position(0, 0));
+                    //var flowRich = new FlowField(waveRich);
+                    //LogFields(game, "RICH", costRich, waveRich, flowRich);
 
                     var requests = new Dictionary<EntityId, ShipRequest>(game.Me.Ships.Count);
                     foreach (Ship ship in game.Me.Ships.Values)
@@ -72,7 +72,7 @@ namespace Halite3
 
                         int mineRadius = Math.Min(4, game.TurnNumber / 70 + 1);
                         var goalMine = game.Map.GetRichestLocalSquare(ship.Position, mineRadius);
-                        var costMine = CostField.CreateMine(game, maxHalite, mineCosts);
+                        var costMine = CostField.CreateMine(game, mineCosts);
                         var waveMine = new WaveField(costMine, goalMine.Position);
                         var flowMine = new FlowField(waveMine);
                         //LogFields(game, "MINE", costMine, waveMine, flowMine);
@@ -481,7 +481,7 @@ namespace Halite3
             var sb = new StringBuilder();
 
             Log.Message($"{title}: MAP");
-            ColHeader();
+            ColHeader(map.Width);
             for (int y = 0; y < map.Height; y++)
             {
                 sb.Clear();
@@ -497,7 +497,7 @@ namespace Halite3
             if (costField != null)
             {
                 Log.Message($"{title}: COST");
-                ColHeader();
+                ColHeader(costField.Width);
                 for (int y = 0; y < costField.Height; y++)
                 {
                     sb.Clear();
@@ -514,7 +514,7 @@ namespace Halite3
             if (waveField != null)
             {
                 Log.Message($"{title}: WAVE");
-                ColHeader();
+                ColHeader(waveField.Width);
                 for (int y = 0; y < waveField.Height; y++)
                 {
                     sb.Clear();
@@ -531,7 +531,7 @@ namespace Halite3
             if (flowField != null)
             {
                 Log.Message($"{title}: FLOW");
-                ColHeader();
+                ColHeader(flowField.Width);
                 for (int y = 0; y < flowField.Height; y++)
                 {
                     sb.Clear();
@@ -552,11 +552,14 @@ namespace Halite3
                 {
                     l = '■';
                 }
+                else if (waveField[x, y] == WaveField.Goal)
+                {
+                    l = '◉';
+                }
                 else
                 {
                     switch (costField[x, y])
                     {
-                        case CostField.Goal: l = '◉'; break; // 0
                         case CostField.Valley: l = '▼'; break; // 1
                         case CostField.Peak: l = '▲'; break; // 254
                         case CostField.Wall: l = '⎕'; break; // 255
@@ -570,10 +573,10 @@ namespace Halite3
                 return (l, r);
             }
 
-            void ColHeader()
+            void ColHeader(int len)
             {
                 sb.Clear().Append("   |");
-                for (int x = 0; x < map.Width; x++)
+                for (int x = 0; x < len; x++)
                     sb.Append($" {x:000} |");
                 Log.Message(sb.ToString());
             }

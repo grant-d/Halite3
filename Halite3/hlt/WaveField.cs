@@ -29,10 +29,10 @@ namespace Halite3.Hlt
             }
         }
 
-        public WaveField(CostField costField, Position goal)
+        public WaveField(CostField costField, params Position[] goals)
         {
             Debug.Assert(costField != null);
-            Debug.Assert(goal != null);
+            Debug.Assert(goals != null && goals.Length > 0);
 
             Width = costField.Width;
             Height = costField.Height;
@@ -47,13 +47,17 @@ namespace Halite3.Hlt
                 }
             }
 
-            // 2 - The goal node then gets its total path cost set to zero.
-            this[goal.X, goal.Y] = Goal;
-
-            // 2 - And gets added to the open list.
-            // From this point the goal node is treated like a normal node.
             var openList = new Queue<Position>();
-            openList.Enqueue(goal);
+
+            // 2 - The goal node then gets its total path cost set to zero.
+            foreach (Position goal in goals)
+            {
+                this[goal.X, goal.Y] = Goal;
+
+                // 2 - And gets added to the open list.
+                // From this point the goal node is treated like a normal node.
+                openList.Enqueue(goal);
+            }
 
             // 5. This algorithm continues until the open list is empty.
             while (openList.Count > 0)

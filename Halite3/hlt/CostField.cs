@@ -38,9 +38,11 @@ namespace Halite3.Hlt
             _cells = cells;
         }
 
-        public static CostField CreateMine(Game game, int maxHalite, IDictionary<Position, byte> customCosts)
+        public static CostField CreateMine(Game game, IDictionary<Position, byte> customCosts)
         {
             Debug.Assert(game != null);
+
+            var maxHalite = game.Map.MaxHalite;
 
             // If mine <= 9, then moveCost = 9/10 == 0. So we must always keep mine >= 10.
             // Then add enough for one more dig: 10 * 4/3 = 13.33. 13.33 * 0.75 == 10.
@@ -86,7 +88,7 @@ namespace Halite3.Hlt
                         // Invert since we want rich valleys. So 1->254, 254->1
                         byte halite = (byte)(byte.MaxValue - h4);
 
-                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"MINE {h1}, {h2}, {h3}, _{halite}_, {minPotential}, {potential}, {maxPotential}");
+                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"MINE {h1}, {h2}, {h3}, _{halite}_, {maxHalite}, {minPotential}, {potential}, {maxPotential}");
 
                         cells[ix] = halite;
                     }
@@ -99,9 +101,11 @@ namespace Halite3.Hlt
             return field;
         }
 
-        public static CostField CreateHome(Game game, int maxHalite, IDictionary<Position, byte> customCosts)
+        public static CostField CreateHome(Game game, IDictionary<Position, byte> customCosts)
         {
             Debug.Assert(game != null);
+
+            var maxHalite = game.Map.MaxHalite;
 
             // If mine <= 9, then moveCost = 9/10 == 0. So we must always keep mine >= 10.
             // Then add enough for one more dig: 10 * 4/3 = 13.33. 13.33 * 0.75 == 10.
@@ -146,7 +150,7 @@ namespace Halite3.Hlt
                         // Do not invert since we want barren valleys.
                         byte halite = (byte)h4;
 
-                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"HOME {h1}, {h2}, {h3}, _{halite}_, {minPotential}, {potential}, {maxPotential}");
+                        Debug.Assert(halite > 0 && halite < byte.MaxValue, $"HOME {h1}, {h2}, {h3}, _{halite}_, {maxHalite}, {minPotential}, {potential}, {maxPotential}");
 
                         cells[ix] = halite;
                     }
@@ -171,31 +175,31 @@ namespace Halite3.Hlt
             }
         }
 
-        public static CostField Compress(Game game, int xRadius, int yRadius)
+        public static CostField Compress(Map map, int xRadius, int yRadius)
         {
-            Debug.Assert(game != null);
+            Debug.Assert(map != null);
             Debug.Assert(xRadius > 0);
             Debug.Assert(yRadius > 0);
 
             int xLen = xRadius * 2 + 1;
             int yLen = yRadius * 2 + 1;
 
-            int width = 1 + game.Map.Width / xLen;
-            int height = 1 + game.Map.Height / yLen;
+            int width = 1 + map.Width / xLen;
+            int height = 1 + map.Height / yLen;
 
             var cells = new byte[width * height];
             var max = xLen * yLen * byte.MaxValue;
 
-            for (int x = xRadius, xx = 0; x < game.Map.Width; x += xLen, xx++)
+            for (int x = xRadius, xx = 0; x < map.Width; x += xLen, xx++)
             {
-                for (int y = yRadius, yy = 0; y < game.Map.Height; y += yLen, yy++)
+                for (int y = yRadius, yy = 0; y < map.Height; y += yLen, yy++)
                 {
                     int sum = 0;
                     for (int x1 = x - xRadius; x1 < x + xRadius; x1++)
                     {
                         for (int y1 = y - yRadius; y1 < y + yRadius; y1++)
                         {
-                            sum += game.Map[x1, y1].Halite;
+                            sum += map[x1, y1].Halite;
                         }
                     }
                     cells[yy * width + xx] = (byte)(byte.MaxValue * sum / max);

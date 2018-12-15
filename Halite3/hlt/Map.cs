@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace Halite3.Hlt
 {
@@ -35,6 +36,8 @@ namespace Halite3.Hlt
 #pragma warning restore CA1043 // Use Integral Or String Argument For Indexers
             => this[entity.Position.X, entity.Position.Y];
 
+        public int MaxHalite { get; private set; }
+
         /// <summary>
         /// Creates a new instance of a GameMap
         /// </summary>
@@ -42,11 +45,18 @@ namespace Halite3.Hlt
         /// <param name="width">The width, as an int, of the map</param>
         /// <param name="height">The height, as an int, of the map</param>
         public Map(int width, int height)
+            : this(width, height, new MapCell[height * width])
+        { }
+
+        private Map(int width, int height, MapCell[] cells)
         {
+            Debug.Assert(cells != null);
+            Debug.Assert(cells.Length == width * height);
+
             Width = width;
             Height = height;
 
-            _cells = new MapCell[Height * Width];
+            _cells = cells;
         }
 
         /// <summary>
@@ -128,12 +138,17 @@ namespace Halite3.Hlt
         /// </summary>
         internal void _update()
         {
+            int max = 0;
             for (int y = 0; y < Height; ++y)
             {
                 for (int x = 0; x < Width; ++x)
                 {
                     int index = Position.ToIndex(x, y, Width, Height);
-                    _cells[index].Ship = null;
+                    MapCell cell = _cells[index];
+                    cell.Ship = null;
+
+                    if (cell.Halite > max)
+                        max = cell.Halite;
                 }
             }
 
@@ -146,8 +161,15 @@ namespace Halite3.Hlt
                 int y = input.GetInt();
 
                 int index = Position.ToIndex(x, y, Width, Height);
-                _cells[index].Halite = input.GetInt();
+                MapCell cell = _cells[index];
+
+                cell.Halite = input.GetInt();
+
+                if (cell.Halite > max)
+                    max = cell.Halite;
             }
+
+            MaxHalite = max;
         }
 
         /// <summary>
