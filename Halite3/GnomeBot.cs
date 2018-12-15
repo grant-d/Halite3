@@ -31,9 +31,13 @@ namespace Halite3
                 (int minHalite, int maxHalite, int totalHalite, int meanHalite) = game.Map.GetHaliteStatistics();
                 Log.Message($"Min={minHalite}, Max={maxHalite}, Mean = {meanHalite}, Total={totalHalite}");
 
-                double maxShips1 = game.Map.Height * game.Map.Width; // 32->1024, 40->1600, 48->2304, 56->3136, 64->4096
-                maxShips1 = maxShips1 / 160; // 32->6, 40->10, 48->13, 56->19, 64->27
-                maxShips1 = maxShips1 + (40 * meanHalite * 2 / maxHalite); // 32->12, 40->16, 48->19, 56->25, 64->33
+                //double maxShips1 = game.Map.Height * game.Map.Width; // 32->1024, 40->1600, 48->2304, 56->3136, 64->4096
+                //maxShips1 = maxShips1 / 160; // 32->6, 40->10, 48->13, 56->19, 64->27
+                //double pf = game.Players.Count + 40.0 / game.Players.Count; // 2->22, 4->14
+                //maxShips1 = maxShips1 + (pf * meanHalite * 2 / maxHalite); // 32->12, 40->16, 48->19, 56->25, 64->33
+                double maxShips1 = game.Map.Height * game.Map.Width * 4 / game.Players.Count; // 32->1024 x 2|1, 64->4096 x 2|1
+                maxShips1 = Math.Sqrt(maxShips1); // 32->45|32, 64->90|64
+                maxShips1 = maxShips1 / 2; // 32->24|16, 64->45|32
                 int maxShips = (int)maxShips1;
                 Log.Message($"Ships={maxShips}");
 
@@ -233,6 +237,7 @@ namespace Halite3
                                 Position target = new Direction[] { dir1, dir2 }
                                     .Select(d => ship2.Position.DirectionalOffset(d))
                                     .Except(requests.Where(n => n.Key != kvp2.Key).Select(n => n.Value.Target))
+                                    .OrderBy(_ => rng.NextDouble())
                                     .FirstOrDefault();
 
                                 if (target == default)
@@ -240,6 +245,7 @@ namespace Halite3
                                     target = DirectionExtensions.NSEW
                                         .Select(d => ship2.Position.DirectionalOffset(d))
                                         .Except(requests.Where(n => n.Key != kvp2.Key).Select(n => n.Value.Target))
+                                        .OrderBy(_ => rng.NextDouble())
                                         .FirstOrDefault();
                                 }
 
@@ -257,6 +263,7 @@ namespace Halite3
                                 Position target = DirectionExtensions.NSEW
                                     .Select(d => ship2.Position.DirectionalOffset(d))
                                     .Except(requests.Where(n => n.Key != kvp2.Key).Select(n => n.Value.Target))
+                                    .OrderBy(_ => rng.NextDouble())
                                     .FirstOrDefault();
 
                                 Direction dir = target == default ? Direction.Stay : game.Map.NaiveNavigate(ship2, target);
@@ -361,7 +368,7 @@ namespace Halite3
                 Position pos = game.Me.Shipyard.Position;
 
                 // When mining, don't attract ships to my shipyard
-                // But don't affect the halite countour
+                // But don't affect the halite contour
                 mineCosts.Add(pos, CostField.Wall);
 
                 // When homing, attract ships towards my shipyard
@@ -373,7 +380,7 @@ namespace Halite3
             foreach (Position pos in players.Select(n => n.Shipyard.Position))
             {
                 // When mining, don't crash into their shipyard ships
-                // But don't affect the halite countour
+                // But don't affect the halite contour
                 mineCosts.Add(pos, CostField.Wall);
 
                 // When homing, accentuate my valleys and avoid collisions
@@ -392,7 +399,7 @@ namespace Halite3
             foreach (Position pos in game.Me.Dropoffs.Select(n => n.Value.Position))
             {
                 // When mining, don't attract ships to my dropoffs
-                // But don't affect the halite countour
+                // But don't affect the halite contour
                 mineCosts[pos] = CostField.Wall;
 
                 // When homing, attract ships towards my dropoffs
@@ -404,7 +411,7 @@ namespace Halite3
             foreach (Position pos in players.SelectMany(n => n.Dropoffs).Select(n => n.Value.Position))
             {
                 // When mining, don't crash into their dropoff ships
-                // But don't affect the halite countour
+                // But don't affect the halite contour
                 mineCosts[pos] = CostField.Wall;
 
                 // When homing, accentuate my valleys and avoid collisions
