@@ -43,12 +43,12 @@ namespace Halite3.Hlt
                 for (int x = 0; x < Width; x++)
                 {
                     // 1 - The algorithm starts by resetting the value of all cells to a large value (65535).
-                    _cells[y * Width + x] = WaveField.Max;
+                    _cells[y * Width + x] = Max;
                 }
             }
 
             // 2 - The goal node then gets its total path cost set to zero.
-            this[goal.X, goal.Y] = WaveField.Goal;
+            this[goal.X, goal.Y] = Goal;
 
             // 2 - And gets added to the open list.
             // From this point the goal node is treated like a normal node.

@@ -105,14 +105,13 @@ namespace Halite3
                                         continue;
                                     }
 
-                                    // If mine is depleted, but ship is nearly full
+                                    // If mine is depleted, but ship is nearly full, go back to base
                                     else if (ship.Halite > 0.97 * Constants.MaxHalite)
                                     {
                                         Log.Message($"{ship} is nearly full");
                                         goto case ShipState.Homing;
                                     }
 
-                                    // Queue the request
                                     Log.Message($"{ship} has target {target}");
                                     requests[ship.Id] = new ShipRequest(ShipState.Mining, target);
                                 }
@@ -129,6 +128,7 @@ namespace Halite3
                                     states[ship.Id] = ShipState.Homing;
 
                                     Position target = flowHome.GetTarget(ship.Position);
+                                    Log.Message($"{ship} has target {target}");
                                     requests[ship.Id] = new ShipRequest(ShipState.Homing, target);
                                 }
                                 break;
@@ -138,6 +138,7 @@ namespace Halite3
                                     states[ship.Id] = ShipState.Ending;
 
                                     Position target = flowHome.GetTarget(ship.Position);
+                                    Log.Message($"{ship} has target {target}");
                                     requests[ship.Id] = new ShipRequest(ShipState.Ending, target);
                                 }
                                 break;
@@ -150,7 +151,7 @@ namespace Halite3
                         commandDict[ship.Id] = ship.Stay();
                     }
 
-                    // Take care of swaps
+                    // Take care of conflicts
                     var done = new Dictionary<EntityId, bool>();
                     foreach (KeyValuePair<EntityId, ShipRequest> kvp1 in requests)
                     {
@@ -178,14 +179,14 @@ namespace Halite3
                                 game.Map[ship2.Position.X, ship2.Position.Y].MarkSafe();
                                 Direction dir = game.Map.NaiveNavigate(ship1, ship2.Position);
                                 commandDict[ship1.Id] = Command.Move(ship1.Id, dir);
-                                done[kvp1.Key] = true;
 
                                 game.Map[ship1.Position.X, ship1.Position.Y].MarkSafe();
                                 dir = game.Map.NaiveNavigate(ship2, ship1.Position);
                                 commandDict[ship2.Id] = Command.Move(ship2.Id, dir);
-                                done[kvp2.Key] = true;
 
                                 Log.Message($"Swapped {ship1} and {ship2}");
+                                done[kvp1.Key] = true;
+                                done[kvp2.Key] = true;
                                 break;
                             }
 
@@ -209,11 +210,19 @@ namespace Halite3
                                     .Except(requests.Where(n => n.Key != kvp2.Key).Select(n => n.Value.Target))
                                     .FirstOrDefault();
 
+                                if (target == default)
+                                {
+                                    target = DirectionExtensions.NSEW
+                                        .Select(d => ship2.Position.DirectionalOffset(d))
+                                        .Except(requests.Where(n => n.Key != kvp2.Key).Select(n => n.Value.Target))
+                                        .FirstOrDefault();
+                                }
+
                                 Direction dir = target == default ? Direction.Stay : game.Map.NaiveNavigate(ship2, target);
                                 commandDict[ship2.Id] = Command.Move(ship2.Id, dir);
-                                done[kvp2.Key] = true;
 
                                 Log.Message($"Wiggled {ship2} from behind {ship1} to {target}");
+                                done[kvp2.Key] = true;
                                 continue;
                             }
 
@@ -227,9 +236,9 @@ namespace Halite3
 
                                 Direction dir = target == default ? Direction.Stay : game.Map.NaiveNavigate(ship2, target);
                                 commandDict[ship2.Id] = Command.Move(ship2.Id, dir);
-                                done[kvp2.Key] = true;
 
                                 Log.Message($"Swerved {ship2} from {ship1} to {target}");
+                                done[kvp2.Key] = true;
                                 continue;
                             }
                         }
@@ -269,6 +278,13 @@ namespace Halite3
                     foreach (Command cmd in commandQueue)
                     {
                         Log.Message($"{cmd.Info}");
+                    }
+
+                    // Mitigate hijack
+                    if (game.IsShipyardHijacked()
+                        && game.Me.Halite >= Constants.ShipCost)
+                    {
+                        commandQueue.Add(Command.SpawnShip());
                     }
 
                     // Spawn new ships as necessary
