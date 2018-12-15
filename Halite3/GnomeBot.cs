@@ -355,7 +355,7 @@ namespace Halite3
 
                     // 
                     var commandQueue = commandDict.Select(n => n.Value).ToList();
-                    foreach (var cmd in commandQueue)
+                    foreach (Command cmd in commandQueue)
                     {
                         Log.Message($"{cmd.Info}");
                     }
@@ -468,7 +468,7 @@ namespace Halite3
 
             if (barren) return false;
 
-            // Calculate opportunity cost, by estimating next step
+            // Calculate opportunity cost, by estimating next steps in a mini game tree
             mine -= mined;
             double shipStayStay = shipStay + Mine(mine);
             double shipStayLeave = shipStay - Move(mine);
@@ -481,7 +481,7 @@ namespace Halite3
 
             Log.Message($"OPPORT LOSS: {ship}, available={mine}, leave={shipLeave}, stay={shipStay}, target={target}");
 
-            return shipStay >= shipLeave;
+            return shipStay > shipLeave;
 
             // 25% of halite available in cell, rounded up to the nearest whole number.
             double Mine(double halite)
