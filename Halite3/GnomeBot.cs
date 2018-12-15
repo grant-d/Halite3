@@ -11,6 +11,7 @@ namespace Halite3
     public sealed class GnomeBot
     {
         private const double CostFactor = 1.1;
+        private const double EndFactor = 1.333;
 
         public static void Main(string[] args)
         {
@@ -55,7 +56,7 @@ namespace Halite3
 
                     var costHome = CostField.CreateHome(game, maxHalite, homeCosts);
                     var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
-                    var flowHome = new FlowField(waveHome);
+                    var flowHome = new FlowField(waveHome, false);
                     //LogFields(game, "HOME", costHome, waveHome, flowHome);
 
                     var requests = new Dictionary<EntityId, ShipRequest>(game.Me.Ships.Count);
@@ -67,7 +68,7 @@ namespace Halite3
 
                         var costMine = CostField.CreateMine(game, maxHalite, mineCosts);
                         var waveMine = new WaveField(costMine, goalMine.Position);
-                        var flowMine = new FlowField(waveMine);
+                        var flowMine = new FlowField(waveMine, false);
                         //LogFields(game, "MINE", costMine, waveMine, flowMine);
 
                         if (!states.TryGetValue(ship.Id, out ShipState status))
@@ -76,7 +77,7 @@ namespace Halite3
                         }
 
                         (Position Position, int Distance) closestBase = game.GetClosestDrop(ship);
-                        if (turnsRemaining - game.Me.Ships.Count <= closestBase.Distance * 1.05)
+                        if (turnsRemaining <= (closestBase.Distance + game.Me.Ships.Count) * EndFactor)
                         {
                             status = ShipState.Ending;
                         }
