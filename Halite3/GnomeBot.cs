@@ -12,6 +12,7 @@ namespace Halite3
     {
         private const double CostFactor = 1.0;
         private const double EndFactor = 1.25;
+        //private const int MineRadius = 5;
 
         public static void Main(string[] args)
         {
@@ -46,14 +47,6 @@ namespace Halite3
                 int maxBuildTurn = Constants.MaxTurns * 8 / 10;
                 var states = new Dictionary<EntityId, ShipState>(maxShips);
 
-                var shipyards = game.Players.Select(n => n.Shipyard.Position);
-                var minX = shipyards.Min(n => n.X);
-                var maxX = shipyards.Max(n => n.X);
-                var minY = shipyards.Min(n => n.Y);
-                var maxY = shipyards.Max(n => n.Y);
-                var radius = (int)Math.Sqrt(Math.Pow(maxX - minX, 2) + Math.Pow(maxY - minY, 2)) / 5 + 1;
-                Log.Message($"Players={game.Players.Count}, Radius={radius}");
-
                 // Set static custom costs
                 (IReadOnlyDictionary<Position, byte> mineBaseCosts, IReadOnlyDictionary<Position, byte> homeBaseCosts) = SetCustomCosts(game);
 
@@ -77,7 +70,8 @@ namespace Halite3
                     {
                         Log.Message($"------- FLOURINE TURN {game.TurnNumber - 1} ------- ");
 
-                        var goalMine = game.Map.GetRichestLocalSquare(ship.Position, radius);
+                        int mineRadius = Math.Min(4, game.TurnNumber / 70 + 1);
+                        var goalMine = game.Map.GetRichestLocalSquare(ship.Position, mineRadius);
                         var costMine = CostField.CreateMine(game, maxHalite, mineCosts);
                         var waveMine = new WaveField(costMine, goalMine.Position);
                         var flowMine = new FlowField(waveMine);
@@ -311,7 +305,8 @@ namespace Halite3
                             {
                                 target = drop;
 
-                                if (kvp.Value.State == ShipState.Ending)
+                                if (kvp.Value.State == ShipState.Ending
+                                    || game.IsShipyardHijacked())
                                 {
                                     game.Map[target.X, target.Y].MarkSafe();
                                     Log.Message($"Aiming {ship} at drop {target}");

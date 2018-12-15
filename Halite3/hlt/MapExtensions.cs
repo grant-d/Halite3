@@ -58,35 +58,55 @@ namespace Halite3.Hlt
             if (radius == 0)
                 return (position, Sum(position).Sum);
 
-            // North
+            // N
             var north = new Position(position.X, position.Y - radius);
-            var n = Sum(north);
-            int halite = n.Sum;
-            Position mine = n.Position;
+            var sum = Sum(north);
+            int halite = sum.Sum;
+            Position mine = sum.Position;
 
-            // East
+            // NE
+            var ne = new Position(position.X + radius, position.Y + radius);
+            sum = Sum(ne);
+            if (sum.Sum > halite) { mine = sum.Position; halite = sum.Sum; }
+
+            // E
             var east = new Position(position.X + radius, position.Y);
-            var e = Sum(east);
-            if (e.Sum > halite) { mine = e.Position; halite = e.Sum; }
+            sum = Sum(east);
+            if (sum.Sum > halite) { mine = sum.Position; halite = sum.Sum; }
 
-            // South
+            // SE
+            var se = new Position(position.X + radius, position.Y - radius);
+            sum = Sum(se);
+            if (sum.Sum > halite) { mine = sum.Position; halite = sum.Sum; }
+
+            // S
             var south = new Position(position.X, position.Y + radius);
-            var s = Sum(south);
-            if (s.Sum > halite) { mine = s.Position; halite = s.Sum; }
+            sum = Sum(south);
+            if (sum.Sum > halite) { mine = sum.Position; halite = sum.Sum; }
 
-            // West
+            // SW
+            var sw = new Position(position.X - radius, position.Y - radius);
+            sum = Sum(sw);
+            if (sum.Sum > halite) { mine = sum.Position; halite = sum.Sum; }
+
+            // W
             var west = new Position(position.X - radius, position.Y);
-            var w = Sum(west);
-            if (w.Sum > halite) { mine = w.Position; halite = w.Sum; }
+            sum = Sum(west);
+            if (sum.Sum > halite) { mine = sum.Position; halite = sum.Sum; }
+
+            // NW
+            var nw = new Position(position.X - radius, position.Y + radius);
+            sum = Sum(nw);
+            if (sum.Sum > halite) { mine = sum.Position; halite = sum.Sum; }
 
             return (mine, halite);
 
             (int Sum, Position Position) Sum(Position center)
             {
-                int sum = map[center.X, center.Y].Halite;
+                int s = map[center.X, center.Y].Halite;
 
                 if (radius == 0)
-                    return (sum, center);
+                    return (s, center);
 
                 int bestHal = 0;
                 Position bestPol = center;
@@ -104,11 +124,11 @@ namespace Halite3.Hlt
                             bestPol = pos;
                         }
 
-                        sum += hal;
+                        s += hal;
                     }
                 }
 
-                return (sum, bestPol);
+                return (s, bestPol);
             }
         }
 
