@@ -43,7 +43,7 @@ namespace Halite3.Hlt
                 {
                     var current = new Position(x, y);
 
-                    ushort best = WaveCell.Max.Cost;
+                    ushort best = WaveField.Max;
                     FlowDirection direction = FlowDirection._;
 
                     Check(FlowDirection.N);
@@ -57,7 +57,7 @@ namespace Halite3.Hlt
                     {
                         Position pos = dir.FromPosition(current);
 
-                        ushort cost = waveField[pos.X, pos.Y].Cost;
+                        ushort cost = waveField[pos.X, pos.Y];
                         if (cost < best)
                         {
                             best = cost;

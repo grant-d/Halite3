@@ -103,7 +103,7 @@ namespace Halite3.Hlt
 
             target = position;
 
-            foreach (Direction dir in DirectionExtensions.AllCardinals)
+            foreach (Direction dir in DirectionExtensions.NSEW)
             {
                 Position pos = position.DirectionalOffset(dir);
 

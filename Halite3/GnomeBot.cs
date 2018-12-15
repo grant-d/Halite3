@@ -56,7 +56,7 @@ namespace Halite3
                     var costHome = CostField.CreateHome(game, maxHalite, homeCosts);
                     var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
                     var flowHome = new FlowField(waveHome);
-                    LogFields(game, "HOME", costHome, waveHome, flowHome);
+                    //LogFields(game, "HOME", costHome, waveHome, flowHome);
 
                     var requests = new Dictionary<EntityId, ShipRequest>(game.Me.Ships.Count);
                     foreach (Ship ship in game.Me.Ships.Values)
@@ -78,19 +78,16 @@ namespace Halite3
                         (Position Position, int Distance) closestBase = game.GetClosestDrop(ship);
                         if (turnsRemaining - game.Me.Ships.Count <= closestBase.Distance * 1.05)
                         {
-                            Log.Message($"Setting {ship} to Ending");
                             status = ShipState.Ending;
-                            states[ship.Id] = ShipState.Ending;
                         }
 
+                        Log.Message($"Analyzing {ship} in {status}");
                         switch (status)
                         {
                             case ShipState.Mining:
                                 {
                                     states[ship.Id] = ShipState.Mining;
-                                    Log.Message($"Analyzing {ship} in Mining");
 
-                                    // Follow the flowfield out
                                     FlowCell flow = flowMine[ship.Position.X, ship.Position.Y];
                                     FlowDirection flowDir = flow.Direction;
                                     Position target = flowDir.FromPosition(ship.Position);
@@ -98,7 +95,7 @@ namespace Halite3
                                     // If ship is full, go back to base
                                     if (ship.IsFull)
                                     {
-                                        Log.Message($"{ship} is full; returning");
+                                        Log.Message($"{ship} is full");
                                         goto case ShipState.Homing;
                                     }
 
@@ -113,7 +110,7 @@ namespace Halite3
 
                                             // Move in the direction with the maximum halite
                                             int halite = 0;
-                                            foreach (Direction dir1 in DirectionExtensions.AllCardinals)
+                                            foreach (Direction dir1 in DirectionExtensions.NSEW)
                                             {
                                                 Position p = ship.Position.DirectionalOffset(dir1);
                                                 int h = game.Map[p.X, p.Y].Halite;
@@ -128,7 +125,7 @@ namespace Halite3
                                             // If no halite available, move in any empty direction
                                             if (target == ship.Position)
                                             {
-                                                foreach (Direction dir1 in DirectionExtensions.AllCardinals)
+                                                foreach (Direction dir1 in DirectionExtensions.NSEW)
                                                 {
                                                     Position p = ship.Position.DirectionalOffset(dir1);
                                                     if (game.Map[p.X, p.Y].IsEmpty)
@@ -149,7 +146,7 @@ namespace Halite3
                                     }
 
                                     // If current mine is not depleted
-                                    if (IsWorthStaying(game.Map, ship, target))
+                                    if (IsWorthStaying(game.Map, ship, target, out _, out _))
                                     {
                                         states[ship.Id] = ShipState.Mining;
 
@@ -175,33 +172,14 @@ namespace Halite3
 
                             case ShipState.Homing:
                                 {
-                                    states[ship.Id] = ShipState.Homing;
-                                    Log.Message($"Analyzing {ship} in Returning");
-
-                                    // If ship is on the drop, go mine
                                     if (game.IsOnDrop(ship.Position))
-                                    {
-                                        Log.Message($"{ship} is on drop");
                                         goto case ShipState.Mining;
-                                    }
 
-                                    // If ship is next to the drop
-                                    if (game.IsNextToDrop(ship.Position, out Position drop))
-                                    {
-                                        Log.Message($"{ship} is next to drop");
-                                        // Queue the request
-                                        requests[ship.Id] = new ShipRequest(ShipState.Homing, drop);
-                                        continue;
-                                    }
+                                    states[ship.Id] = ShipState.Homing;
 
-                                    // Else follow the flowfield home
                                     FlowCell flow = flowHome[ship.Position.X, ship.Position.Y];
-                                    FlowDirection flowDir = flow.Direction;
-
-                                    // Queue the request
-                                    Position target = flowDir.FromPosition(ship.Position);
+                                    Position target = flow.Direction.FromPosition(ship.Position);
                                     requests[ship.Id] = new ShipRequest(ShipState.Homing, target);
-                                    Log.Message($"{ship} is returning to {target}");
                                     //if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                 }
                                 break;
@@ -209,21 +187,13 @@ namespace Halite3
                             case ShipState.Ending:
                                 {
                                     states[ship.Id] = ShipState.Ending;
-                                    Log.Message($"Analyzing {ship} in Ending");
 
-                                    // Else follow the flowfield home
                                     FlowCell flow = flowHome[ship.Position.X, ship.Position.Y];
-                                    FlowDirection flowDir = flow.Direction;
-
-                                    // Queue the request
-                                    Position target = flowDir.FromPosition(ship.Position);
+                                    Position target = flow.Direction.FromPosition(ship.Position);
                                     requests[ship.Id] = new ShipRequest(ShipState.Ending, target);
-
                                     //if (!game.IsOnDrop(target)) { mineCosts[target] = CostField.Wall; homeCosts[target] = CostField.Wall; }
                                 }
                                 break;
-
-                            default: break;
                         }
                     }
 
@@ -452,44 +422,49 @@ namespace Halite3
             return (mineCosts, homeCosts);
         }
 
-        private static bool IsWorthStaying(Map map, Ship ship, Position target)
+        private static bool IsWorthStaying(Map map, Ship ship, Position target, out int shipStay, out int shipLeave)
         {
-            double mine = map[ship.Position.X, ship.Position.Y].Halite;
-            bool barren = mine <= 0;
+            var stay = IsWorthStaying(map, ship.Position, ship.Halite, target, out shipStay, out shipLeave);
+
+            Log.Message($"STAY?: {ship}, stay={shipStay}, leave={shipLeave}, decision={stay}");
+
+            return stay;
+        }
+
+        private static bool IsWorthStaying(Map map, Position shipPosition, in int shipHalite, Position target, out int shipStay, out int shipLeave)
+        {
+            double mineHalite = map[shipPosition.X, shipPosition.Y].Halite;
+            bool barren = mineHalite <= 0;
 
             // Calculate ship's bounty if it leaves
-            double shipLeave = ship.Halite - Move(mine);
+            shipLeave = shipHalite - Move(mineHalite);
 
             // Calculate ship's bounty if it stays
-            double mined = Mine(mine);
-            double shipStay = ship.Halite + mined;
-
-            Log.Message($"PROFIT GAIN: {ship}, available={mine}, leave={shipLeave}, stay={shipStay}, barren={barren}");
+            int mined = Mine(mineHalite);
+            shipStay = shipHalite + mined;
 
             if (barren) return false;
 
             // Calculate opportunity cost, by estimating next steps in a mini game tree
-            mine -= mined;
-            double shipStayStay = shipStay + Mine(mine);
-            double shipStayLeave = shipStay - Move(mine);
+            mineHalite -= mined;
+            int shipStayStay = shipStay + Mine(mineHalite);
+            int shipStayLeave = shipStay - Move(mineHalite);
             shipStay = Math.Max(shipStayStay, shipStayLeave);
 
-            mine = map[target.X, target.Y].Halite;
-            double shipLeaveLeave = shipLeave - Move(mine);
-            double shipLeaveStay = shipLeave + Mine(mine);
+            mineHalite = map[target.X, target.Y].Halite;
+            int shipLeaveLeave = shipLeave - Move(mineHalite);
+            int shipLeaveStay = shipLeave + Mine(mineHalite);
             shipLeave = Math.Max(shipLeaveLeave, shipLeaveStay);
-
-            Log.Message($"OPPORT LOSS: {ship}, available={mine}, leave={shipLeave}, stay={shipStay}, target={target}");
 
             return shipStay > shipLeave;
 
             // 25% of halite available in cell, rounded up to the nearest whole number.
-            double Mine(double halite)
-                => Math.Ceiling(halite / Constants.ExtractRatio); // 4
+            int Mine(double halite)
+                => (int)Math.Ceiling(halite / Constants.ExtractRatio); // 4
 
             // 10% of halite available at turn origin cell is deducted from ship’s current halite.
-            double Move(double halite)
-                => Math.Floor(halite / Constants.MoveCostRatio); // 10
+            int Move(double halite)
+                => (int)Math.Floor(halite / Constants.MoveCostRatio); // 10
         }
 
         private static void LogFields(Game game, string title, CostField costField, WaveField waveField, FlowField flowField)
@@ -544,7 +519,7 @@ namespace Halite3
                     for (int x = 0; x < waveField.Width; x++)
                     {
                         (char l, char r) = Symbol(x, y);
-                        sb.Append($"{l}{waveField[x, y].Cost:0000}{r}");
+                        sb.Append($"{l}{waveField[x, y]:0000}{r}");
                     }
                     Log.Message(sb.ToString());
                 }
