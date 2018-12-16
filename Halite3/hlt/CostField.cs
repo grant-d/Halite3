@@ -181,14 +181,14 @@ namespace Halite3.Hlt
             Debug.Assert(xRadius > 0);
             Debug.Assert(yRadius > 0);
 
-            int xLen = xRadius * 2 + 1;
+            int xLen = xRadius * 2 + 1; // 1->3, 2->5, 3->7
             int yLen = yRadius * 2 + 1;
 
-            int width = 1 + map.Width / xLen;
-            int height = 1 + map.Height / yLen;
+            int width = 1 + map.Width / xLen; // (32) 1->11, 2->7, 3->5
+            int height = 1 + map.Height / yLen; // (64) 1->22, 2->13, 3->10
 
             var cells = new byte[width * height];
-            var max = xLen * yLen * byte.MaxValue;
+            var maxVal = xLen * yLen * byte.MaxValue;
 
             for (int x = xRadius, xx = 0; x < map.Width; x += xLen, xx++)
             {
@@ -202,7 +202,9 @@ namespace Halite3.Hlt
                             sum += map[x1, y1].Halite;
                         }
                     }
-                    cells[yy * width + xx] = (byte)(byte.MaxValue * sum / max);
+
+                    // Normalize
+                    cells[yy * width + xx] = (byte)(byte.MaxValue * sum / maxVal);
                 }
             }
 

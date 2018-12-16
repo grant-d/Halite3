@@ -29,10 +29,10 @@ namespace Halite3.Hlt
             }
         }
 
-        public WaveField(CostField costField, params Position[] goals)
+        public WaveField(CostField costField, IEnumerable<Position> goals)
         {
             Debug.Assert(costField != null);
-            Debug.Assert(goals != null && goals.Length > 0);
+            Debug.Assert(goals != null);
 
             Width = costField.Width;
             Height = costField.Height;

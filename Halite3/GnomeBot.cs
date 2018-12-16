@@ -12,7 +12,7 @@ namespace Halite3
     {
         private const double CostFactor = 1.0;
         private const double EndFactor = 1.25;
-        //private const int MineRadius = 5;
+        private const int CompressRatio = 20;
 
         public static void Main(string[] args)
         {
@@ -56,14 +56,32 @@ namespace Halite3
                     (IDictionary<Position, byte> mineCosts, IDictionary<Position, byte> homeCosts) = UpdateCustomCosts(game, mineBaseCosts, homeBaseCosts);
 
                     var costHome = CostField.CreateHome(game, homeCosts);
-                    var waveHome = new WaveField(costHome, game.Me.Shipyard.Position);
+                    var waveHome = new WaveField(costHome, new[] { game.Me.Shipyard.Position });
                     var flowHome = new FlowField(waveHome);
                     //LogFields(game, "HOME", costHome, waveHome, flowHome);
 
-                    //var costRich = CostField.Compress(game.Map, game.Map.Width / 20, game.Map.Height / 20); // 32->1(3), 64->3(7)
-                    //var waveRich = new WaveField(costRich, new Position(0, 0));
-                    //var flowRich = new FlowField(waveRich);
-                    //LogFields(game, "RICH", costRich, waveRich, flowRich);
+                    var xRadius = game.Map.Width / CompressRatio; // 32->1, 64->3
+                    var yRadius = game.Map.Height / CompressRatio;
+                    var xLen = xRadius * 2 + 1; // 32->3, 64->7
+                    var yLen = yRadius * 2 + 1;
+                    var costRich = CostField.Compress(game.Map, xRadius, yRadius);
+
+                    var sy = new Position(game.Me.Shipyard.Position.X / xLen, game.Me.Shipyard.Position.Y / yLen);
+                    var richest = new List<(Position, ushort)>(costRich.Width * costRich.Height);
+                    for (int x = 0; x < costRich.Width; x++)
+                    {
+                        for (int y = 0; y < costRich.Height; y++)
+                        {
+                            var pos = new Position(x, y);
+                            var waveRich = new WaveField(costRich, new[] { pos });
+                            //LogFields(game, "RICH", costRich, waveRich, null);
+                            richest.Add((pos, waveRich[sy.X, sy.Y]));
+                        }
+                    }
+                    IEnumerable<Position> topN = richest
+                        .OrderByDescending(n => n.Item2)
+                        .Take(3)
+                        .Select(n => new Position(n.Item1.X * xLen + 1, n.Item1.Y * yLen + 1));
 
                     var requests = new Dictionary<EntityId, ShipRequest>(game.Me.Ships.Count);
                     foreach (Ship ship in game.Me.Ships.Values)
@@ -73,9 +91,9 @@ namespace Halite3
                         int mineRadius = Math.Min(4, game.TurnNumber / 70 + 1);
                         var goalMine = game.Map.GetRichestLocalSquare(ship.Position, mineRadius);
                         var costMine = CostField.CreateMine(game, mineCosts);
-                        var waveMine = new WaveField(costMine, goalMine.Position);
+                        var waveMine = new WaveField(costMine, topN);
                         var flowMine = new FlowField(waveMine);
-                        //LogFields(game, "MINE", costMine, waveMine, flowMine);
+                        LogFields(game, "MINE", costMine, waveMine, flowMine);
 
                         if (!states.TryGetValue(ship.Id, out ShipState status))
                         {
@@ -556,14 +574,11 @@ namespace Halite3
                 {
                     l = '◉';
                 }
-                else
+                else switch (costField[x, y])
                 {
-                    switch (costField[x, y])
-                    {
-                        case CostField.Valley: l = '▼'; break; // 1
-                        case CostField.Peak: l = '▲'; break; // 254
-                        case CostField.Wall: l = '⎕'; break; // 255
-                    }
+                    case CostField.Valley: l = '▼'; break; // 1
+                    case CostField.Peak: l = '▲'; break; // 254
+                    case CostField.Wall: l = '⎕'; break; // 255
                 }
 
                 char r = ' ';
