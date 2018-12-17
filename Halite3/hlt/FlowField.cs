@@ -3,9 +3,6 @@ using System.Diagnostics;
 
 namespace Halite3.Hlt
 {
-    // https://leifnode.com/2013/12/flow-field-pathfinding/
-    // https://gamedevelopment.tutsplus.com/tutorials/understanding-goal-based-vector-field-pathfinding--gamedev-9007
-    // http://www.gameaipro.com/GameAIPro/GameAIPro_Chapter23_Crowd_Pathfinding_and_Steering_Using_Flow_Field_Tiles.pdf
     public sealed class FlowField
     {
         private readonly FlowCell[] _cells;
@@ -38,16 +35,16 @@ namespace Halite3.Hlt
                     var current = new Position(x, y);
 
                     ushort best = WaveField.Max;
-                    FlowDirection direction = FlowDirection._;
+                    Direction direction = Direction.X;
 
-                    Check(FlowDirection.N);
-                    Check(FlowDirection.E);
-                    Check(FlowDirection.S);
-                    Check(FlowDirection.W);
+                    Check(Direction.N);
+                    Check(Direction.E);
+                    Check(Direction.S);
+                    Check(Direction.W);
 
                     _cells[y * Width + x] = new FlowCell(direction);
 
-                    void Check(FlowDirection dir)
+                    void Check(Direction dir)
                     {
                         Position pos = dir.FromPosition(current);
 

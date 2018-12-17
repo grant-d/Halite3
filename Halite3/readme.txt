@@ -1,4 +1,8 @@
-Uses FLowFields per the following references:
+Halite3 bot written in C#
+Enough to get placed at position ~450 (rating ~ 60)
+https://halite.io/user/?user_id=7672
+
+Uses FlowFields per the following references:
 https://leifnode.com/2013/12/flow-field-pathfinding/
 https://gamedevelopment.tutsplus.com/tutorials/understanding-goal-based-vector-field-pathfinding--gamedev-9007
 http://www.gameaipro.com/GameAIPro/GameAIPro_Chapter23_Crowd_Pathfinding_and_Steering_Using_Flow_Field_Tiles.pdf

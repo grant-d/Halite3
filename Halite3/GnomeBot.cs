@@ -243,22 +243,27 @@ namespace Halite3
                                     continue;
                                 }
 
-                                Direction dir1, dir2;
+                                Direction[] dirs;
                                 if (ship1.Position.X == ship2.Position.X)
                                 {
-                                    dir1 = Direction.North;
-                                    dir2 = Direction.South;
+                                    dirs = new Direction[]
+                                    {
+                                        Direction.N,
+                                        Direction.S
+                                    };
                                 }
                                 else
                                 {
-                                    dir1 = Direction.West;
-                                    dir2 = Direction.East;
+                                    dirs = new Direction[]
+                                    {
+                                        Direction.W,
+                                        Direction.E
+                                    };
                                 }
 
-                                Position target = new Direction[] { dir1, dir2 }
+                                Position target = dirs
                                     .Select(d => ship2.Position.DirectionalOffset(d))
                                     .Except(requests.Where(n => n.Key != kvp2.Key).Select(n => n.Value.Target))
-                                    //.OrderBy(_ => rng.NextDouble())
                                     .FirstOrDefault();
 
                                 if (target == default)
@@ -266,11 +271,10 @@ namespace Halite3
                                     target = DirectionExtensions.NSEW
                                         .Select(d => ship2.Position.DirectionalOffset(d))
                                         .Except(requests.Where(n => n.Key != kvp2.Key).Select(n => n.Value.Target))
-                                        //.OrderBy(_ => rng.NextDouble())
                                         .FirstOrDefault();
                                 }
 
-                                Direction dir = target == default ? Direction.Stay : game.Map.NaiveNavigate(ship2, target);
+                                Direction dir = target == default ? Direction.X : game.Map.NaiveNavigate(ship2, target);
                                 commandDict[ship2.Id] = Command.Move(ship2.Id, dir);
 
                                 Log.Message($"Wiggled {ship2} from behind {ship1} to {target}");
@@ -287,7 +291,7 @@ namespace Halite3
                                     //.OrderBy(_ => rng.NextDouble())
                                     .FirstOrDefault();
 
-                                Direction dir = target == default ? Direction.Stay : game.Map.NaiveNavigate(ship2, target);
+                                Direction dir = target == default ? Direction.X : game.Map.NaiveNavigate(ship2, target);
                                 commandDict[ship2.Id] = Command.Move(ship2.Id, dir);
 
                                 Log.Message($"Swerved {ship2} from {ship1} to {target}");
@@ -557,7 +561,7 @@ namespace Halite3
                     for (int x = 0; x < flowField.Width; x++)
                     {
                         (char l, char r) = Symbol(x, y);
-                        sb.Append($"{l} {flowField[x, y].Direction.ToSymbol()} {r}|");
+                        sb.Append($"{l} {flowField[x, y].Direction.ToFlowSymbol()} {r}|");
                     }
                     Log.Message(sb.ToString());
                 }

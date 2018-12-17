@@ -70,28 +70,28 @@ namespace Halite3.Hlt
 
             switch (dir)
             {
-                case Direction.North:
+                case Direction.N:
                     dx = 0;
                     dy = -1;
                     break;
 
-                case Direction.South:
+                case Direction.S:
                     dx = 0;
                     dy = 1;
                     break;
 
-                case Direction.East:
+                case Direction.E:
                     dx = 1;
                     dy = 0;
                     break;
 
-                case Direction.West:
+                case Direction.W:
                     dx = -1;
                     dy = 0;
                     break;
 
                 default:
-                case Direction.Stay:
+                case Direction.X:
                     dx = 0;
                     dy = 0;
                     break;

@@ -39,7 +39,7 @@ namespace Halite3.Hlt
         /// Returns the command to keep this ship still.
         /// </summary>
         public Command Stay()
-            => Command.Move(Id, Direction.Stay);
+            => Command.Move(Id, Direction.X);
 
         public override string ToString()
             => $"{base.ToString()}({Halite} halite)";

@@ -10,24 +10,24 @@ namespace Halite3.Hlt
             Debug.Assert(position != null);
 
             // North
-            Position north = position.DirectionalOffset(Direction.North);
-            int n = Sum(north, Direction.North, Direction.East, Direction.West);
+            Position north = position.DirectionalOffset(Direction.N);
+            int n = Sum(north, Direction.N, Direction.E, Direction.W);
             int halite = n;
             Position mine = north;
 
             // East
-            Position east = position.DirectionalOffset(Direction.East);
-            int e = Sum(east, Direction.North, Direction.East, Direction.South);
+            Position east = position.DirectionalOffset(Direction.E);
+            int e = Sum(east, Direction.N, Direction.E, Direction.S);
             if (e > halite) { mine = east; halite = e; }
 
             // South
-            Position south = position.DirectionalOffset(Direction.South);
-            int s = Sum(south, Direction.East, Direction.South, Direction.West);
+            Position south = position.DirectionalOffset(Direction.S);
+            int s = Sum(south, Direction.E, Direction.S, Direction.W);
             if (s > halite) { mine = south; halite = s; }
 
             // West
-            Position west = position.DirectionalOffset(Direction.West);
-            int w = Sum(west, Direction.North, Direction.South, Direction.West);
+            Position west = position.DirectionalOffset(Direction.W);
+            int w = Sum(west, Direction.N, Direction.S, Direction.W);
             if (w > halite) { mine = west; halite = w; }
 
             return (mine, halite);
