@@ -94,20 +94,20 @@ namespace Halite3.Hlt
 
             if (normalizedSource.X < normalizedDestination.X)
             {
-                possibleMoves.Add(dx > wrapped_dx ? Direction.West : Direction.East);
+                possibleMoves.Add(dx > wrapped_dx ? Direction.W : Direction.E);
             }
             else if (normalizedSource.X > normalizedDestination.X)
             {
-                possibleMoves.Add(dx < wrapped_dx ? Direction.West : Direction.East);
+                possibleMoves.Add(dx < wrapped_dx ? Direction.W : Direction.E);
             }
 
             if (normalizedSource.Y < normalizedDestination.Y)
             {
-                possibleMoves.Add(dy > wrapped_dy ? Direction.North : Direction.South);
+                possibleMoves.Add(dy > wrapped_dy ? Direction.N : Direction.S);
             }
             else if (normalizedSource.Y > normalizedDestination.Y)
             {
-                possibleMoves.Add(dy < wrapped_dy ? Direction.North : Direction.South);
+                possibleMoves.Add(dy < wrapped_dy ? Direction.N : Direction.S);
             }
 
             return possibleMoves;
@@ -130,7 +130,7 @@ namespace Halite3.Hlt
                 }
             }
 
-            return Direction.Stay;
+            return Direction.X;
         }
 
         /// <summary>

@@ -4,9 +4,9 @@ namespace Halite3.Hlt
 {
     public readonly struct FlowCell : IEquatable<FlowCell>
     {
-        public FlowDirection Direction { get; }
+        public Direction Direction { get; }
 
-        public FlowCell(FlowDirection direction)
+        public FlowCell(Direction direction)
         {
             Direction = direction;
         }
